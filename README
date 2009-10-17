@@ -5,5 +5,28 @@ software.
 == Prerequisites
 soap4r 1.5.8 or later
 
+== Synopsis (tentative)
+require 'mail/sympa'
+
+mail = Mail::Sympa.new(server, namespace)
+mail.login(email, password)
+
+# Is some_user a member of some_list ?
+puts mail.am_i?('some_user', 'some_list')
+
+# Subscribe the current user to some_list.
+mail.subscribe('some_list')
+
+# Enumerate over each list and inspect it
+puts mail.lists.each do |list|
+  p list
+end
+
 == Notes
 See http://www.sympa.org for details.
+
+== Authors
+Daniel Berger
+David Salisbury
+Mark Sallee
+Mike Leon
