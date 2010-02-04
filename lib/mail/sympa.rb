@@ -4,19 +4,34 @@ require 'soap/rpc/driver'
 module Mail
   # The Sympa module encapsulates the various Sympa server SOAP methods
   class Sympa
-    # Error class raised if any of the Sympa methods fail.
+    # Error class raised in some cases if a Mail::Sympa method fails.
     class Error < StandardError; end
 
     # The session cookie returned by the login method.
     attr_reader :cookie
 
-    # Creates and returns a new Mail::Sympa object based on the +url+ (the
-    # endpoint URL) and a +namespace+ which defaults to 'urn:sympasoap'.
+    # The endpoint URL of the SOAP service.
+    attr_reader :endpoint
+
+    # A boolean indicating whether remote applications should be trusted.
+    attr_reader :trusted
+
+    # The URN namespace. The default is 'urn:sympasoap'.
+    attr_reader :namespace
+
+    # Creates and returns a new Mail::Sympa object based on the +endpoint+
+    # (the endpoint URL) and a +namespace+ which defaults to 'urn:sympasoap'.
     #
-    def initialize(url, namespace = 'urn:sympasoap')
-      @url = url.to_s # Allows URI objects
+    # The +trusted+ argument determines whether or not to trust a particular
+    # application to act as a proxy instead of authenticating the end user
+    # itself.
+    #
+    def initialize(endpoint, trusted = false, namespace = 'urn:sympasoap')
+      @endpoint  = endpoint.to_s # Allow for URI objects
       @namespace = namespace
-      @soap = SOAP::RPC::Driver.new(url, namespace)
+      @trusted   = trusted
+
+      @soap = SOAP::RPC::Driver.new(endpoint, namespace)
 
       @email    = nil
       @password = nil
@@ -64,7 +79,7 @@ module Mail
     def lists(topic='', sub_topic='')
       raise Error 'must login first' unless @cookie
       args = [topic, sub_topic]
-      @soap.authenticateAndRun(@email, @password, 'lists', args)
+      @soap.authenticateAndRun(@email, @cookie, 'lists', args)
     end
 
     # Returns an array of available mailing lists in complex object format,
@@ -83,7 +98,7 @@ module Mail
     def complex_lists(topic='', sub_topic='')
       raise Error 'must login first' unless @cookie
       args = [topic, sub_topic]
-      @soap.authenticateAndRun(@email, @password, 'lists', args)
+      @soap.authenticateAndRun(@email, @cookie, 'complexLists', args)
     end
 
     alias complexLists complex_lists
@@ -99,8 +114,8 @@ module Mail
     #  sympa.info(list)
     #
     def info(list_name)
-      raise Error 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @password, 'info', [list_name])
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'info', [list_name])
     end
 
     # Returns an array of members that belong to the given +list_name+.
@@ -113,7 +128,9 @@ module Mail
     #
     def review(list_name)
       raise Error 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @password, 'review', [list_name])
+      @soap.authenticateAndRun(@email, @cookie, 'review', [list_name])
     end
+
+    alias url endpoint
   end
 end

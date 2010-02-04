@@ -18,9 +18,10 @@ class MailSympaTest < Test::Unit::TestCase
 
   def setup
     @mail  = Mail::Sympa.new(@@url)
-    @user  = 'postmaster' # Add your domain here
-    @pass  = 'XXXXXXXX'   # Set the password here
+    @user  = 'postmaster@globe.gov' # Add your domain here
+    @pass  = 'XXXXXXXX'             # Set the passwd here
     @topic = 'testlist'
+    @nosub = 'partners'
   end
 
   # Because most methods won't work without logging in first
@@ -107,8 +108,76 @@ class MailSympaTest < Test::Unit::TestCase
     assert_kind_of(Array, @mail.lists(@topic, @topic))
   end
 
+  test "lists method returns empty array if topic or subtopic is not found" do
+    login
+    assert_equal([], @mail.lists('bogus'))
+    assert_equal([], @mail.lists(@topic, 'bogus'))
+  end
+
   test "lists method accepts a maximum of two arguments" do
     assert_raise(ArgumentError){ @mail.lists(@topic, @topic, @topic) }
+  end
+
+  # Cl
+
+  test "complex_lists method basic functionality" do
+    login
+    assert_respond_to(@mail, :complex_lists)
+    assert_nothing_raised{ @mail.complex_lists }
+  end
+
+  test "complex_lists method with no arguments returns all lists" do
+    login
+    assert_kind_of(Array, @mail.lists)
+    assert_kind_of(SOAP::Mapping::Object, @mail.complex_lists.first)
+  end
+
+  test "complex_lists method accepts a topic and subtopic" do
+    login
+    assert_kind_of(Array, @mail.complex_lists(@topic))
+    assert_kind_of(Array, @mail.complex_lists(@topic, @topic))
+  end
+
+  test "lists method returns empty array if topic or subtopic is not found" do
+    login
+    assert_equal([], @mail.complex_lists('bogus'))
+    assert_equal([], @mail.complex_lists(@topic, 'bogus'))
+  end
+
+  test "lists method accepts a maximum of two arguments" do
+    assert_raise(ArgumentError){ @mail.complex_lists(@topic, @topic, @topic) }
+  end
+
+  test "info method basic functionality" do
+    login
+    assert_respond_to(@mail, :info)
+    assert_nothing_raised{ @mail.info(@topic) }
+  end
+
+  test "info method expected results" do
+    login
+    assert_kind_of(SOAP::Mapping::Object, @mail.info(@topic))
+  end
+
+  test "review method basic functionality" do
+    login
+    assert_respond_to(@mail, :review)
+    assert_nothing_raised{ @mail.review(@topic) }
+  end
+
+  test "review method returns expected results" do
+    login
+    assert_kind_of(Array, @mail.review(@topic))
+    assert_kind_of(String, @mail.review(@topic).first)
+  end
+
+  test "review method returns 'no_subscribers' if list has no subscribers" do
+    login
+    assert_equal(['no_subscribers'], @mail.review(@nosub))
+  end
+
+  test "review method raises an error if list isn't found" do
+    assert_raise(Soap::FaultError){ @mail.review('bogus') }
   end
 
   def teardown
