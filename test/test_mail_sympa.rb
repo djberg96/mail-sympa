@@ -3,6 +3,11 @@
 #
 # This is the test suite for the mail-sympa library. You should run
 # these tests via the test rake task.
+#
+# In order for these tests to run successfully you must use the
+# dbi-dbrc library, and create an entry for 'test_sympa'. The user
+# name should include the full domain, e.g. foo@bar.org. and the driver
+# should be set to the URL.
 ########################################################################
 require 'rubygems'
 gem 'test-unit'
@@ -10,16 +15,18 @@ gem 'test-unit'
 require 'test/unit'
 require 'resolv'
 require 'mail/sympa'
+require 'dbi/dbrc'
 
 class MailSympaTest < Test::Unit::TestCase
   def self.startup
-    @@url = "http://" + Resolv.getaddress('sympa') + "/sympasoap"
+    @@info = DBI::DBRC.new('test_sympa')
+    @@url  = @@info.driver
   end
 
   def setup
     @mail  = Mail::Sympa.new(@@url)
-    @user  = 'postmaster@globe.gov' # Add your domain here
-    @pass  = 'XXXXXXXX'             # Set the passwd here
+    @user  = @@info.user
+    @pass  = @@info.passwd
     @topic = 'testlist'
     @nosub = 'partners'
   end
@@ -177,17 +184,19 @@ class MailSympaTest < Test::Unit::TestCase
   end
 
   test "review method raises an error if list isn't found" do
-    assert_raise(Soap::FaultError){ @mail.review('bogus') }
+    login
+    assert_raise(SOAP::FaultError){ @mail.review('bogusxxxyyyzzz') }
   end
 
   def teardown
-    @mail = nil
-    @user = nil
-    @pass = nil
+    @mail  = nil
+    @user  = nil
+    @pass  = nil
     @topic = nil
   end
 
   def self.shutdown
-    @@url = nil
+    @@url  = nil
+    @@info = nil
   end
 end
