@@ -46,6 +46,15 @@ module Mail
         'service',
         'parameters'
       )
+
+      @soap.add_method(
+        'authenticateRemoteAppAndRun',
+        'appname',
+        'apppassword',
+        'vars',
+        'service',
+        'parameters'
+      )
     end
 
     # Authenticate with the Sympa server. This method must be called before
@@ -111,7 +120,11 @@ module Mail
     #  sympa = Mail::Sympa.new(url)
     #  sympa.login(user, password)
     #
-    #  sympa.info(list)
+    #  info = sympa.info(list)
+    #
+    #  puts info.subject
+    #  puts info.homepage
+    #  puts info.isOwner
     #
     def info(list_name)
       raise Error, 'must login first' unless @cookie
@@ -119,6 +132,7 @@ module Mail
     end
 
     # Returns an array of members that belong to the given +list_name+.
+    #
     # Example:
     #
     #  sympa = Mail::Sympa.new(url)
@@ -127,9 +141,39 @@ module Mail
     #  sympa.review(list)
     #
     def review(list_name)
-      raise Error 'must login first' unless @cookie
+      raise Error, 'must login first' unless @cookie
       @soap.authenticateAndRun(@email, @cookie, 'review', [list_name])
     end
+
+    # Returns an array of lists that the +user+ is subscribed to. The +user+
+    # should include the proxy variable setup in the trusted_applications.conf
+    # file.
+    #
+    # The +app_name+ is whatever is set in your trusted_applications.conf file.
+    # The +app_password+ for that app must also be provided.
+    # 
+    # Example:
+    #
+    #   sympa = Mail::Sympa.new(url)
+    #   sympa.login(user, password)
+    #
+    #   # If vars contains USER_NAME
+    #   sympa.which('USER_NAME=some_user', 'my_app', 'my_password')
+    #
+    def which(user, app_name, app_passwd)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'which', nil)
+    end
+
+    # Same as the Sympa#which method, but returns an array of SOAP::Mapping
+    # objects that you can call methods on.
+    #
+    def complex_which(user, app_name, app_passwd)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'complexWhich', nil)
+    end
+
+    alias complexWhich complex_which
 
     alias url endpoint
   end
