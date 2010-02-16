@@ -125,8 +125,6 @@ class MailSympaTest < Test::Unit::TestCase
     assert_raise(ArgumentError){ @mail.lists(@topic, @topic, @topic) }
   end
 
-  # Cl
-
   test "complex_lists method basic functionality" do
     login
     assert_respond_to(@mail, :complex_lists)
@@ -186,6 +184,38 @@ class MailSympaTest < Test::Unit::TestCase
   test "review method raises an error if list isn't found" do
     login
     assert_raise(SOAP::FaultError){ @mail.review('bogusxxxyyyzzz') }
+  end
+
+  test "which basic functionality" do
+    assert_respond_to(@mail, :which)
+  end
+
+  test "complex_which basic functionality" do
+    assert_respond_to(@mail, :complex_which)
+  end
+
+  test "complexWhich is an alias for complex_which" do
+    assert_alias_method(@mail, :complexWhich, :complex_which)
+  end
+
+  test "am_i basic functionality" do
+    login
+    assert_respond_to(@mail, :am_i?)
+    assert_nothing_raised{ @mail.am_i?(@user, @topic) }
+    assert_nothing_raised{ @mail.am_i?(@user, @topic, 'owner') }
+  end
+
+  test "am_i returns expected result" do
+    login
+    assert_boolean(@mail.am_i?(@user, @topic))
+  end
+
+  test "am_i function name must be owner or editor" do
+    assert_raise(Mail::Sympa::Error){ @mail.am_i?(@user, @topic, 'bogus') }
+  end
+
+  test "amI is an alias for am_i?" do
+    assert_alias_method(@mail, :amI, :am_i?)
   end
 
   def teardown

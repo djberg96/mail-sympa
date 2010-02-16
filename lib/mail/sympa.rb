@@ -175,6 +175,18 @@ module Mail
 
     alias complexWhich complex_which
 
+    def am_i?(user, list_name, function = 'editor')
+      raise Error, 'must login first' unless @cookie
+
+      unless ['editor', 'owner'].include?(function)
+        raise Error, 'invalid function name "#{editor}"'
+      end
+
+      @soap.authenticateAndRun(@email, @cookie, 'amI', [list_name, function, user])
+    end
+
+    alias amI am_i?
+
     alias url endpoint
   end
 end
