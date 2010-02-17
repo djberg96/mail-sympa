@@ -38,6 +38,10 @@ class MailSympaTest < Test::Unit::TestCase
     @mail.login(@user, @pass)
   end
 
+  test "version constant is expected value" do
+    assert_equal('0.1.0', Mail::Sympa::VERSION)
+  end
+
   test "endpoint method basic functionality" do
     assert_respond_to(@mail, :endpoint)
     assert_nothing_raised{ @mail.endpoint }
