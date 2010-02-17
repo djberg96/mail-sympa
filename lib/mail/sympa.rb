@@ -63,12 +63,12 @@ module Mail
     # Example:
     #
     #  sympa = Mail::Sympa.new(url)
-    #  sympa.login(user, password)
+    #  sympa.login(email, password)
     #
     def login(email, password) 
-      @email = email
+      @email    = email
       @password = password
-      @cookie = @soap.login(email, password)
+      @cookie   = @soap.login(email, password)
     end
 
     # Returns an array of available mailing lists based on +topic+ and
@@ -81,7 +81,7 @@ module Mail
     # Example:
     #
     #  sympa = Mail::Sympa.new(url)
-    #  sympa.login(user, password)
+    #  sympa.login(email, password)
     #
     #  sympa.lists.each{ |list| puts list }
     #
@@ -97,7 +97,7 @@ module Mail
     # Example:
     #
     #  sympa = Mail::Sympa.new(url)
-    #  sympa.login(user, password)
+    #  sympa.login(email, password)
     #
     #  sympa.complex_lists.each{ |list|
     #    puts list.subject
@@ -118,7 +118,7 @@ module Mail
     # Example:
     #
     #  sympa = Mail::Sympa.new(url)
-    #  sympa.login(user, password)
+    #  sympa.login(email, password)
     #
     #  info = sympa.info(list)
     #
@@ -136,7 +136,7 @@ module Mail
     # Example:
     #
     #  sympa = Mail::Sympa.new(url)
-    #  sympa.login(user, password)
+    #  sympa.login(email, password)
     #
     #  sympa.review(list)
     #
@@ -155,7 +155,7 @@ module Mail
     # Example:
     #
     #   sympa = Mail::Sympa.new(url)
-    #   sympa.login(user, password)
+    #   sympa.login(email, password)
     #
     #   # If vars contains USER_NAME
     #   sympa.which('USER_NAME=some_user', 'my_app', 'my_password')
@@ -191,26 +191,43 @@ module Mail
 
     alias amI am_i?
 
-    # Subscribes the given +user+ to +list_name+.
-    #
-    # Returns a boolean indicating success or failure.
+    # Adds the given +email+ to +list_name+ using +name+ (gecos). If +quiet+
+    # is set to true (the default) then no email notification is sent.
     #--
-    # FIXME: Doesn't seem to actually work, even though it gives no indication of failure
+    # TODO: Determine why this method does not return a boolean.
     #
-    def subscribe(user, list_name)
+    def add(email, list_name, name, quiet=true)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'subscribe', [list_name, user])
+      @soap.authenticateAndRun(@email, @cookie, 'add', [list_name, email, name, quiet])
     end
 
-    # Deletes the given +user+ from +list_name+.
+    # Deletes the given +email+ from +list_name+. If +quiet+ is set to true
+    # (the default) then no email notification is sent.
+    #--
+    # TODO: Determine why this method does not return a boolean.
     #
-    def del(user, list_name, quiet=true)
+    def del(email, list_name, quiet=true)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'del', [list_name, user, quiet])
+      @soap.authenticateAndRun(@email, @cookie, 'del', [list_name, email, quiet])
     end
 
-    alias unsubscribe del
+    # Subscribes the currently logged in user to +list_name+. By default the
+    # +name+ (gecos) will be the email address.
+    #
+    def subscribe(list_name, name = @email)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'subscribe', [list_name, name])
+    end
 
+    # Removes the currently logged in user from +list_name+.
+    #
+    def signoff(list_name)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'signoff', [list_name, @email])
+    end
+
+    alias delete del
+    alias unsubscribe signoff
     alias url endpoint
   end
 end
