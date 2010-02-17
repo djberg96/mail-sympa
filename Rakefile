@@ -2,23 +2,23 @@ require 'rake'
 require 'rake/testtask'
 include Config
 
-desc "Install the mail-sympa library"
-task :install_lib do
-  dest = File.join(CONFIG['sitelibdir'], 'mail')
-  Dir.mkdir(dest) unless File.exists? dest
-  cp 'lib/mail/sympa.rb', dest, :verbose => true
-end
+namespace 'gem' do
+  desc 'Remove any existing gem file'
+  task :clean do
+    Dir['*.gem'].each{ |f| File.delete(f) }
+  end
 
-desc 'Build the mail-sympa gem'
-task :gem do
-  spec = eval(IO.read('mail-sympa.gemspec'))
-  Gem::Builder.new(spec).build
-end
+  desc 'Build the mail-sympa gem'
+  task :build => [:clean] do
+    spec = eval(IO.read('mail-sympa.gemspec'))
+    Gem::Builder.new(spec).build
+  end
 
-desc 'Install the mail-sympa library as a gem'
-task :install_gem => [:gem] do
-  file = Dir["*.gem"].first
-  sh "gem install #{file}"
+  desc 'Install the mail-sympa gem'
+  task :install => [:build] do
+    file = Dir["*.gem"].first
+    sh "gem install #{file}"
+  end
 end
 
 Rake::TestTask.new('test') do |t|
