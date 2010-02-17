@@ -175,6 +175,10 @@ module Mail
 
     alias complexWhich complex_which
 
+    # Returns a boolean indicating whether or not +user+ has +function+
+    # on +list_name+. The two possible values for +function+ are 'editor'
+    # and 'owner'.
+    #
     def am_i?(user, list_name, function = 'editor')
       raise Error, 'must login first' unless @cookie
 
@@ -186,6 +190,26 @@ module Mail
     end
 
     alias amI am_i?
+
+    # Subscribes the given +user+ to +list_name+.
+    #
+    # Returns a boolean indicating success or failure.
+    #--
+    # FIXME: Doesn't seem to actually work, even though it gives no indication of failure
+    #
+    def subscribe(user, list_name)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'subscribe', [list_name, user])
+    end
+
+    # Deletes the given +user+ from +list_name+.
+    #
+    def del(user, list_name, quiet=true)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'del', [list_name, user, quiet])
+    end
+
+    alias unsubscribe del
 
     alias url endpoint
   end
