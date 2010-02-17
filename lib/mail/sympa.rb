@@ -7,6 +7,9 @@ module Mail
     # Error class raised in some cases if a Mail::Sympa method fails.
     class Error < StandardError; end
 
+    # The version of the mail-sympa library.
+    VERSION = '0.1.0'
+
     # The session cookie returned by the login method.
     attr_reader :cookie
 
@@ -87,8 +90,7 @@ module Mail
     #
     def lists(topic='', sub_topic='')
       raise Error 'must login first' unless @cookie
-      args = [topic, sub_topic]
-      @soap.authenticateAndRun(@email, @cookie, 'lists', args)
+      @soap.authenticateAndRun(@email, @cookie, 'lists', [topic, sub_topic])
     end
 
     # Returns an array of available mailing lists in complex object format,
@@ -159,6 +161,8 @@ module Mail
     #
     #   # If vars contains USER_NAME
     #   sympa.which('USER_NAME=some_user', 'my_app', 'my_password')
+    #
+    # An alternative is to use complex_lists + review, though it's slower.
     #
     def which(user, app_name, app_passwd)
       raise Error, 'must login first' unless @cookie
