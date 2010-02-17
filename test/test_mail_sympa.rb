@@ -226,6 +226,7 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "add returns expected result" do
     login
+    notify("The documentation says this should return a boolean")
     assert_boolean(@mail.add('test@foo.com', @list, 'test'))
   end
 
@@ -241,6 +242,7 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "del returns expected result" do
     login
+    notify("The documentation says this should return a boolean")
     assert_boolean(@mail.del('test@foo.com', @list))
   end
 
