@@ -1,32 +1,43 @@
-== Description
-The mail-sympa library is Ruby interface for the Sympa mailing list management
-software.
+= Description
+  The mail-sympa library is Ruby interface for the Sympa mailing list management
+  software.
 
-== Prerequisites
-soap4r 1.5.8 or later
+= Prerequisites
+  soap4r 1.5.8 or later
 
-== Synopsis (tentative)
-require 'mail/sympa'
+= Installation
+  gem install mail-sympa
 
-mail = Mail::Sympa.new(server, namespace)
-mail.login(email, password)
+= Synopsis (tentative)
+  require 'mail/sympa'
 
-# Is some_user a member of some_list ?
-puts mail.am_i?('some_user', 'some_list')
+  mail = Mail::Sympa.new(server, namespace)
+  mail.login(email, password)
 
-# Subscribe the current user to some_list.
-mail.subscribe('some_list')
+  # Enumerate over each list and inspect it
+  puts mail.lists.each do |list|
+    p list
+  end
 
-# Enumerate over each list and inspect it
-puts mail.lists.each do |list|
-  p list
-end
+  # Add a user quietly
+  mail.add('foo@bar.com', 'some_list', 'Mr. Foo', true)
 
-== Notes
-See http://www.sympa.org for details.
+= License
+  Artistic 2.0
 
-== Authors
-Daniel Berger
-David Salisbury
-Mark Sallee
-Mike Leon
+= Copyright
+  (C) 2010 Daniel J. Berger, Mark Sallee, David Salisbury
+  All Rights Reserved
+
+= Warranty
+  This library is provided "as is" and without any express or
+  implied warranties, including, without limitation, the implied
+  warranties of merchantability and fitness for a particular purpose.
+
+= Notes
+  See http://www.sympa.org for details.
+
+= Authors
+  Daniel Berger
+  David Salisbury
+  Mark Sallee
