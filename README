@@ -22,6 +22,9 @@
   # Add a user quietly
   mail.add('foo@bar.com', 'some_list', 'Mr. Foo', true)
 
+= Future Plans
+  Add wrappers for createList and closeList.
+
 = License
   Artistic 2.0
 
