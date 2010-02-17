@@ -1,19 +1,21 @@
-########################################################################
+##############################################################################
 # test_mail_sympa.rb
 #
-# This is the test suite for the mail-sympa library. You should run
-# these tests via the test rake task.
+# This is the test suite for the mail-sympa library. You should run these
+# tests via the test rake task.
 #
-# In order for these tests to run successfully you must use the
-# dbi-dbrc library, and create an entry for 'test_sympa'. The user
-# name should include the full domain, e.g. foo@bar.org. and the driver
-# should be set to the URL.
-########################################################################
+# In order for these tests to run successfully you must use the dbi-dbrc
+# library, and create an entry for 'test_sympa'. The user name should include
+# the full domain, e.g. foo@bar.org. and the driver should be set to the URL:
+#
+# test_sympa postmaster@foo.org xxx http://foo.bar.org/sympasoap
+#
+# For all tests to complete successfully, you must use admin credentials.
+##############################################################################
 require 'rubygems'
 gem 'test-unit'
 
 require 'test/unit'
-require 'resolv'
 require 'mail/sympa'
 require 'dbi/dbrc'
 
@@ -27,7 +29,7 @@ class MailSympaTest < Test::Unit::TestCase
     @mail  = Mail::Sympa.new(@@url)
     @user  = @@info.user
     @pass  = @@info.passwd
-    @topic = 'testlist'
+    @list  = 'testlist'
     @nosub = 'partners'
   end
 
@@ -111,18 +113,18 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "lists method accepts a topic and subtopic" do
     login
-    assert_kind_of(Array, @mail.lists(@topic))
-    assert_kind_of(Array, @mail.lists(@topic, @topic))
+    assert_kind_of(Array, @mail.lists(@list))
+    assert_kind_of(Array, @mail.lists(@list, @list))
   end
 
   test "lists method returns empty array if topic or subtopic is not found" do
     login
     assert_equal([], @mail.lists('bogus'))
-    assert_equal([], @mail.lists(@topic, 'bogus'))
+    assert_equal([], @mail.lists(@list, 'bogus'))
   end
 
   test "lists method accepts a maximum of two arguments" do
-    assert_raise(ArgumentError){ @mail.lists(@topic, @topic, @topic) }
+    assert_raise(ArgumentError){ @mail.lists(@list, @list, @list) }
   end
 
   test "complex_lists method basic functionality" do
@@ -139,41 +141,41 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "complex_lists method accepts a topic and subtopic" do
     login
-    assert_kind_of(Array, @mail.complex_lists(@topic))
-    assert_kind_of(Array, @mail.complex_lists(@topic, @topic))
+    assert_kind_of(Array, @mail.complex_lists(@list))
+    assert_kind_of(Array, @mail.complex_lists(@list, @list))
   end
 
   test "lists method returns empty array if topic or subtopic is not found" do
     login
     assert_equal([], @mail.complex_lists('bogus'))
-    assert_equal([], @mail.complex_lists(@topic, 'bogus'))
+    assert_equal([], @mail.complex_lists(@list, 'bogus'))
   end
 
   test "lists method accepts a maximum of two arguments" do
-    assert_raise(ArgumentError){ @mail.complex_lists(@topic, @topic, @topic) }
+    assert_raise(ArgumentError){ @mail.complex_lists(@list, @list, @list) }
   end
 
   test "info method basic functionality" do
     login
     assert_respond_to(@mail, :info)
-    assert_nothing_raised{ @mail.info(@topic) }
+    assert_nothing_raised{ @mail.info(@list) }
   end
 
   test "info method expected results" do
     login
-    assert_kind_of(SOAP::Mapping::Object, @mail.info(@topic))
+    assert_kind_of(SOAP::Mapping::Object, @mail.info(@list))
   end
 
   test "review method basic functionality" do
     login
     assert_respond_to(@mail, :review)
-    assert_nothing_raised{ @mail.review(@topic) }
+    assert_nothing_raised{ @mail.review(@list) }
   end
 
   test "review method returns expected results" do
     login
-    assert_kind_of(Array, @mail.review(@topic))
-    assert_kind_of(String, @mail.review(@topic).first)
+    assert_kind_of(Array, @mail.review(@list))
+    assert_kind_of(String, @mail.review(@list).first)
   end
 
   test "review method returns 'no_subscribers' if list has no subscribers" do
@@ -201,28 +203,92 @@ class MailSympaTest < Test::Unit::TestCase
   test "am_i basic functionality" do
     login
     assert_respond_to(@mail, :am_i?)
-    assert_nothing_raised{ @mail.am_i?(@user, @topic) }
-    assert_nothing_raised{ @mail.am_i?(@user, @topic, 'owner') }
+    assert_nothing_raised{ @mail.am_i?(@user, @list) }
+    assert_nothing_raised{ @mail.am_i?(@user, @list, 'owner') }
   end
 
   test "am_i returns expected result" do
     login
-    assert_boolean(@mail.am_i?(@user, @topic))
+    assert_boolean(@mail.am_i?(@user, @list))
   end
 
   test "am_i function name must be owner or editor" do
-    assert_raise(Mail::Sympa::Error){ @mail.am_i?(@user, @topic, 'bogus') }
+    assert_raise(Mail::Sympa::Error){ @mail.am_i?(@user, @list, 'bogus') }
   end
 
   test "amI is an alias for am_i?" do
     assert_alias_method(@mail, :amI, :am_i?)
   end
 
+  test "add basic functionality" do
+    assert_respond_to(@mail, :add)
+  end
+
+  test "add returns expected result" do
+    login
+    assert_boolean(@mail.add('test@foo.com', @list, 'test'))
+  end
+
+  test "add requires at least three arguments" do
+    assert_raise(ArgumentError){ @mail.add }
+    assert_raise(ArgumentError){ @mail.add('test@foo.com') }
+    assert_raise(ArgumentError){ @mail.add('test@foo.com', @list) }
+  end
+
+  test "del basic functionality" do
+    assert_respond_to(@mail, :del)
+  end
+
+  test "del returns expected result" do
+    login
+    assert_boolean(@mail.del('test@foo.com', @list))
+  end
+
+  test "delete is an alias for del" do
+    assert_alias_method(@mail, :delete, :del)
+  end
+
+  test "del requires at least two arguments" do
+    assert_raise(ArgumentError){ @mail.delete }
+    assert_raise(ArgumentError){ @mail.delete('test@foo.com') }
+  end
+
+  test "subscribe basic functionality" do
+    assert_respond_to(@mail, :subscribe)
+  end
+
+  test "subscribe expected results" do
+    login
+    assert_boolean(@mail.subscribe(@list, 'test'))
+  end
+
+  test "subscribe requires at least one argument" do
+    assert_raise(ArgumentError){ @mail.subscribe }
+  end
+
+  test "signoff basic functionality" do
+    assert_respond_to(@mail, :signoff)
+  end
+
+  test "signoff expected results" do
+    login
+    assert_boolean(@mail.signoff(@list))
+  end
+
+  test "unsubscribe is an alias for signoff" do
+    assert_alias_method(@mail, :unsubscribe, :signoff)
+  end
+
+  test "signoff requires one argument only" do
+    assert_raise(ArgumentError){ @mail.signoff }
+    assert_raise(ArgumentError){ @mail.signoff(@user, @list) }
+  end
+
   def teardown
-    @mail  = nil
-    @user  = nil
-    @pass  = nil
-    @topic = nil
+    @mail = nil
+    @user = nil
+    @pass = nil
+    @list = nil
   end
 
   def self.shutdown
