@@ -16,23 +16,15 @@ module Mail
     # The endpoint URL of the SOAP service.
     attr_reader :endpoint
 
-    # A boolean indicating whether remote applications should be trusted.
-    attr_reader :trusted
-
     # The URN namespace. The default is 'urn:sympasoap'.
     attr_reader :namespace
 
     # Creates and returns a new Mail::Sympa object based on the +endpoint+
     # (the endpoint URL) and a +namespace+ which defaults to 'urn:sympasoap'.
     #
-    # The +trusted+ argument determines whether or not to trust a particular
-    # application to act as a proxy instead of authenticating the end user
-    # itself.
-    #
-    def initialize(endpoint, trusted = false, namespace = 'urn:sympasoap')
+    def initialize(endpoint, namespace = 'urn:sympasoap')
       @endpoint  = endpoint.to_s # Allow for URI objects
       @namespace = namespace
-      @trusted   = trusted
 
       @soap = SOAP::RPC::Driver.new(endpoint, namespace)
 
