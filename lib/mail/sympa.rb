@@ -22,6 +22,10 @@ module Mail
     # Creates and returns a new Mail::Sympa object based on the +endpoint+
     # (the endpoint URL) and a +namespace+ which defaults to 'urn:sympasoap'.
     #
+    # Example:
+    #
+    #   sympa = Mail::Sympa.new('http://your.sympa.home/sympasoap')
+    #
     def initialize(endpoint, namespace = 'urn:sympasoap')
       @endpoint  = endpoint.to_s # Allow for URI objects
       @namespace = namespace
@@ -151,14 +155,14 @@ module Mail
     #   sympa = Mail::Sympa.new(url)
     #   sympa.login(email, password)
     #
-    #   # If vars contains USER_NAME
-    #   sympa.which('USER_NAME=some_user', 'my_app', 'my_password')
+    #   # If vars contains USER_EMAIL
+    #   sympa.which('USER_EMAIL=some_user@foo.com', 'my_app', 'my_password')
     #
     # An alternative is to use complex_lists + review, though it's slower.
     #
     def which(user, app_name, app_passwd)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'which', nil)
+      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'which', [''])
     end
 
     # Same as the Sympa#which method, but returns an array of SOAP::Mapping
@@ -166,7 +170,7 @@ module Mail
     #
     def complex_which(user, app_name, app_passwd)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'complexWhich', nil)
+      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'complexWhich', [''])
     end
 
     alias complexWhich complex_which
