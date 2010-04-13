@@ -56,20 +56,6 @@ class MailSympaTest < Test::Unit::TestCase
     assert_raise(NoMethodError){ @mail.endpoint = 'foo' }
   end
 
-  test "trusted method basic functionality" do
-    assert_respond_to(@mail, :trusted)
-    assert_nothing_raised{ @mail.trusted }
-    assert_boolean(@mail.trusted)
-  end
-
-  test "trusted method expected result" do
-    assert_false(@mail.trusted)
-  end
-
-  test "trusted method is a readonly attribute" do
-    assert_raise(NoMethodError){ @mail.trusted = false }
-  end
-
   test "namespace method basic functionality" do
     assert_respond_to(@mail, :namespace)
     assert_nothing_raised{ @mail.namespace }
