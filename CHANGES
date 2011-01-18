@@ -1,4 +1,4 @@
-= 0.1.1 - 18-Jan-2011
+= 0.1.1 - 17-Jan-2011
 * Fixed two parser warnings caused by missing commas in raise clauses.
 * Added a clean task and a default task to the Rakefile.
 
