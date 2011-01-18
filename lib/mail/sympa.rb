@@ -37,7 +37,7 @@ module Mail
       @cookie   = nil
 
       @soap.add_method('login', 'email', 'password')
-  
+
       @soap.add_method(
         'authenticateAndRun',
         'email',
@@ -64,7 +64,7 @@ module Mail
     #  sympa = Mail::Sympa.new(url)
     #  sympa.login(email, password)
     #
-    def login(email, password) 
+    def login(email, password)
       @email    = email
       @password = password
       @cookie   = @soap.login(email, password)
@@ -85,7 +85,7 @@ module Mail
     #  sympa.lists.each{ |list| puts list }
     #
     def lists(topic='', sub_topic='')
-      raise Error 'must login first' unless @cookie
+      raise Error, 'must login first' unless @cookie
       @soap.authenticateAndRun(@email, @cookie, 'lists', [topic, sub_topic])
     end
 
@@ -103,7 +103,7 @@ module Mail
     #  }
     #
     def complex_lists(topic='', sub_topic='')
-      raise Error 'must login first' unless @cookie
+      raise Error, 'must login first' unless @cookie
       args = [topic, sub_topic]
       @soap.authenticateAndRun(@email, @cookie, 'complexLists', args)
     end
@@ -149,7 +149,7 @@ module Mail
     #
     # The +app_name+ is whatever is set in your trusted_applications.conf file.
     # The +app_password+ for that app must also be provided.
-    # 
+    #
     # Example:
     #
     #   sympa = Mail::Sympa.new(url)
