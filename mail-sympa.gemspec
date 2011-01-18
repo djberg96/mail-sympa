@@ -2,7 +2,7 @@ require 'rubygems'
 
 Gem::Specification.new do |gem|
   gem.name        = 'mail-sympa'
-  gem.version     = '0.1.0' 
+  gem.version     = '0.1.1' 
   gem.authors     = ['Daniel J. Berger', 'David Salisbury', 'Mark Sallee']
   gem.license     = 'Artistic 2.0'
   gem.description = 'Ruby interface for the Sympa mailing list server'
@@ -13,6 +13,7 @@ Gem::Specification.new do |gem|
   gem.homepage    = 'http://github.com/djberg96/mail-sympa'
 
   gem.extra_rdoc_files  = ['README', 'CHANGES', 'MANIFEST']
+  gem.rubyforge_project = 'N/A'
 
   gem.add_dependency('soap4r', '>= 1.5.8')
 
