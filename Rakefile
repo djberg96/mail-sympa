@@ -1,6 +1,9 @@
 require 'rake'
+require 'rake/clean'
 require 'rake/testtask'
 include Config
+
+CLEAN.include("**/*.gem", "**/*.rbc")
 
 namespace 'gem' do
   desc 'Remove any existing gem file'
@@ -25,3 +28,5 @@ Rake::TestTask.new('test') do |t|
   t.warning = true
   t.verbose = true
 end
+
+task :default => :test
