@@ -290,6 +290,23 @@ class MailSympaTest < Test::Unit::TestCase
     assert_raise(ArgumentError){ @mail.create_list("test-#{Time.now.to_i.to_s}") }
   end
 
+  test "close_list basic functionality" do
+    assert_respond_to(@mail, :close_list)
+  end
+
+  test "close_list returns expected result" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    notify("The documentation says this should return a boolean")
+    assert_boolean(@mail.close_list(list_name))
+  end
+
+  test "close_list requires one argument only" do
+    assert_raise(ArgumentError){ @mail.close_list }
+    assert_raise(ArgumentError){ @mail.close_list("A", "B")}
+  end
+
   def teardown
     @mail = nil
     @user = nil

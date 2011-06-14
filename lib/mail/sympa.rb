@@ -238,5 +238,14 @@ module Mail
     end
 
     alias createList create_list
+
+    # Closes list +list_name+.  Returns boolean.
+    #
+    def close_list(list_name)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'closeList', [list_name])
+    end
+
+    alias closeList close_list
   end
 end
