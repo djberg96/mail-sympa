@@ -229,5 +229,23 @@ module Mail
     alias delete del
     alias unsubscribe signoff
     alias url endpoint
+
+    # Creates list +list_name+ with subject +subject+.  Returns boolean.
+    #
+    def create_list(list_name, subject, template='discussion_list', description=' ', topics=' ')
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'createList', [list_name, subject, template, description, topics])
+    end
+
+    alias createList create_list
+
+    # Closes list +list_name+.  Returns boolean.
+    #
+    def close_list(list_name)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'closeList', [list_name])
+    end
+
+    alias closeList close_list
   end
 end
