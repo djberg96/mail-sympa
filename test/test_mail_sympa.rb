@@ -276,6 +276,20 @@ class MailSympaTest < Test::Unit::TestCase
     assert_raise(ArgumentError){ @mail.signoff(@user, @list) }
   end
 
+  test "create_list basic functionality" do
+    assert_respond_to(@mail, :create_list)
+  end
+
+  test "create_list returns expected result" do
+    login
+    assert_boolean(@mail.create_list("test-#{Time.now.to_i.to_s}", 'Test List'))
+  end
+
+  test "create_list requires at least two arguments" do
+    assert_raise(ArgumentError){ @mail.create_list }
+    assert_raise(ArgumentError){ @mail.create_list("test-#{Time.now.to_i.to_s}") }
+  end
+
   def teardown
     @mail = nil
     @user = nil
