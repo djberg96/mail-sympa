@@ -2,14 +2,13 @@ require 'rubygems'
 
 Gem::Specification.new do |gem|
   gem.name        = 'mail-sympa'
-  gem.version     = '0.1.0' 
+  gem.version     = '1.0.0'
   gem.authors     = ['Daniel J. Berger', 'David Salisbury', 'Mark Sallee']
   gem.license     = 'Artistic 2.0'
   gem.description = 'Ruby interface for the Sympa mailing list server'
   gem.email       = 'djberg96@gmail.com'
   gem.files       = Dir['**/*'].reject{ |f| f.include?('git') }
   gem.test_files  = ['test/test_mail_sympa.rb']
-  gem.has_rdoc    = true
   gem.homepage    = 'http://github.com/djberg96/mail-sympa'
 
   gem.extra_rdoc_files  = ['README', 'CHANGES', 'MANIFEST']

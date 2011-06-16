@@ -1,2 +1,12 @@
+= 1.0.0 - 16-Jun-2011
+* Added the create_list and close_list methods and corresponding tests. Thanks
+  go to Blair Christensen for both.
+* Added 0.1.1 changes to this file that I forgot.
+* Bumped the version to 1.0.0, as I have no more future plans for this library.
+
+= 0.1.1 - 17-Jan-2011
+* Fixed two parser warnings caused by missing commas.
+* Added a clean and default task to the Rakefile.
+
 = 0.1.0 - 13-Apr-2010
 * Initial release

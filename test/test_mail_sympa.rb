@@ -39,7 +39,7 @@ class MailSympaTest < Test::Unit::TestCase
   end
 
   test "version constant is expected value" do
-    assert_equal('0.1.0', Mail::Sympa::VERSION)
+    assert_equal('1.0.0', Mail::Sympa::VERSION)
   end
 
   test "endpoint method basic functionality" do

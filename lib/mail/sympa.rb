@@ -8,7 +8,7 @@ module Mail
     class Error < StandardError; end
 
     # The version of the mail-sympa library.
-    VERSION = '0.1.0'
+    VERSION = '1.0.0'
 
     # The session cookie returned by the login method.
     attr_reader :cookie
