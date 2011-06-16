@@ -26,14 +26,11 @@
   The Sympa#add and Sympa#del methods return an empty string instead of
   a boolean. I am unsure why.
 
-= Future Plans
-  Add wrappers for createList and closeList.
-
 = License
   Artistic 2.0
 
 = Copyright
-  (C) 2010 Daniel J. Berger, Mark Sallee, David Salisbury
+  (C) 2010-2011 Daniel J. Berger, Mark Sallee, David Salisbury
   All Rights Reserved
 
 = Warranty
