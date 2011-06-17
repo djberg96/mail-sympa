@@ -247,5 +247,13 @@ module Mail
     end
 
     alias closeList close_list
+
+    # Run command in trusted context.
+    def authenticate_remote_app_and_run(app_name, app_password, variables, service, parameters)
+      @soap.authenticateRemoteAppAndRun( app_name, app_password, variables, service, parameters ) 
+    end
+
+    alias authenticateRemoteAppAndRun authenticate_remote_app_and_run
+
   end
 end

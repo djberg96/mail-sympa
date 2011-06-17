@@ -307,6 +307,20 @@ class MailSympaTest < Test::Unit::TestCase
     assert_raise(ArgumentError){ @mail.close_list("A", "B")}
   end
 
+  test "authenticate_remote_app_and_run basic functionality" do
+    assert_respond_to(@mail, :authenticate_remote_app_and_run)
+    assert_respond_to(@mail, :authenticateRemoteAppAndRun)
+  end
+
+  test "authenticate_remote_app_and_run requires five arguments" do
+    assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run }
+    assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A") }
+    assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B") }
+    assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B", "C") }
+    assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B", "C", "D") }
+    assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B", "C", "D", "E", "F") }
+  end
+
   def teardown
     @mail = nil
     @user = nil
