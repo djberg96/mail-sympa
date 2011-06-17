@@ -1,3 +1,4 @@
+gem 'soap4r-ruby1.9' if RUBY_VERSION > '1.9'
 require 'soap/rpc/driver'
 
 # The Mail module serves as a namespace only.
