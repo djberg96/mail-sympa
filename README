@@ -26,6 +26,9 @@
   The Sympa#add and Sympa#del methods return an empty string instead of
   a boolean. I am unsure why.
 
+= Acknowledgements
+  Thanks go to Blair Christensen for some nice patches for this library.
+
 = License
   Artistic 2.0
 

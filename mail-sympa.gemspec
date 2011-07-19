@@ -2,7 +2,7 @@ require 'rubygems'
 
 Gem::Specification.new do |gem|
   gem.name        = 'mail-sympa'
-  gem.version     = '1.0.0'
+  gem.version     = '1.1.0'
   gem.authors     = ['Daniel J. Berger', 'David Salisbury', 'Mark Sallee']
   gem.license     = 'Artistic 2.0'
   gem.description = 'Ruby interface for the Sympa mailing list server'
