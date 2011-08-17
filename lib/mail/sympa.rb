@@ -256,5 +256,28 @@ module Mail
 
     alias authenticateRemoteAppAndRun authenticate_remote_app_and_run
 
+    # Adds the given +email+ to the editor role for +list_name+. If +quiet+
+    # is set to true (the default) then no email notification is sent.
+    def add_moderation_privileges(email, list_name, quiet=true)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'add_moderation_privileges', [list_name, email, quiet])
+    end
+
+    # Removes the given +email+ from the editor role for +list_name+. If +quiet+
+    # is set to true (the default) then no email notification is sent.
+    def del_moderation_privileges(email, list_name, quiet=true)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'del_moderation_privileges', [list_name, email, quiet])
+    end
+
+    # Changes the auth scenario for sending messages to a mailing list
+    # scenarios can be customized and the default list is here:
+    # http://www.sympa.org/manual/parameters-sending
+    def change_list_scenari(list_name, scenario_name, quiet=true)
+      raise Error, 'must login first' unless @cookie
+      @soap.authenticateAndRun(@email, @cookie, 'change_list_scenari', [list_name, scenario_name, quiet])
+    end
+
+
   end
 end
