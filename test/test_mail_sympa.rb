@@ -135,13 +135,13 @@ class MailSympaTest < Test::Unit::TestCase
     assert_kind_of(Array, @mail.complex_lists(@list, @list))
   end
 
-  test "lists method returns empty array if topic or subtopic is not found" do
+  test "complex_lists method returns empty array if topic or subtopic is not found" do
     login
     assert_equal([], @mail.complex_lists('bogus'))
     assert_equal([], @mail.complex_lists(@list, 'bogus'))
   end
 
-  test "lists method accepts a maximum of two arguments" do
+  test "complex_lists method accepts a maximum of two arguments" do
     assert_raise(ArgumentError){ @mail.complex_lists(@list, @list, @list) }
   end
 
@@ -170,7 +170,9 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "review method returns 'no_subscribers' if list has no subscribers" do
     login
+    @mail.create_list(@nosub, 'Test List')
     assert_equal(['no_subscribers'], @mail.review(@nosub))
+    @mail.close_list(@nosub)
   end
 
   test "review method raises an error if list isn't found" do
@@ -264,7 +266,11 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "signoff expected results" do
     login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    @mail.subscribe(list_name)
     assert_boolean(@mail.signoff(@list))
+    @mail.close_list(list_name)
   end
 
   test "unsubscribe is an alias for signoff" do
@@ -282,7 +288,9 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "create_list returns expected result" do
     login
-    assert_boolean(@mail.create_list("test-#{Time.now.to_i.to_s}", 'Test List'))
+    list_name = "test-#{Time.now.to_i.to_s}"
+    assert_boolean(@mail.create_list(list_name, 'Test List'))
+    @mail.close_list(list_name)
   end
 
   test "create_list requires at least two arguments" do
@@ -319,6 +327,81 @@ class MailSympaTest < Test::Unit::TestCase
     assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B", "C") }
     assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B", "C", "D") }
     assert_raise(ArgumentError){ @mail.authenticate_remote_app_and_run("A", "B", "C", "D", "E", "F") }
+  end
+
+  test "add moderation privileges basic functionality" do
+    assert_respond_to(@mail, :add_moderation_privileges)
+  end
+
+  test "add_moderation_privileges requires two arguments" do
+    assert_raise(ArgumentError){ @mail.add_moderation_privileges}
+    assert_raise(ArgumentError){ @mail.add_moderation_privileges("A") }
+    assert_raise(ArgumentError){ @mail.add_moderation_privileges("A", "B", "C", "D") }
+  end
+
+  test "add_moderation_privileges returns expected result" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    @mail.add('test@foo.com', list_name, 'Test EmailAccount')
+    assert_boolean(@mail.add_moderation_privileges('test@foo.com', list_name))
+    @mail.close_list(list_name)
+  end
+
+  test "del moderation privileges basic functionality" do
+    assert_respond_to(@mail, :del_moderation_privileges)
+  end
+
+  test "del_moderation_privileges requires two arguments" do
+    assert_raise(ArgumentError){ @mail.del_moderation_privileges}
+    assert_raise(ArgumentError){ @mail.del_moderation_privileges("A") }
+    assert_raise(ArgumentError){ @mail.del_moderation_privileges("A", "B", "C", "D") }
+  end
+
+  test "del_moderation_privileges raises an error if the user is not a moderator" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    @mail.add('test@foo.com', list_name, 'Test EmailAccount')
+    assert_raise(SOAP::FaultError){ @mail.del_moderation_privileges('test@foo.com', list_name) }
+    @mail.close_list(list_name)
+  end
+
+  test "del_moderation_privileges returns expected result" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    @mail.add('test@foo.com', list_name, 'Test EmailAccount')
+    @mail.add_moderation_privileges('test@foo.com', list_name)
+    assert_boolean(@mail.del_moderation_privileges('test@foo.com', list_name))
+    @mail.close_list(list_name)
+  end
+
+  test "chnage list scenari basic functionality" do
+    assert_respond_to(@mail, :change_list_scenari)
+  end
+
+  test "change_list_scenari requires two arguments" do
+    assert_raise(ArgumentError){ @mail.change_list_scenari}
+    assert_raise(ArgumentError){ @mail.change_list_scenari("A") }
+    assert_raise(ArgumentError){ @mail.change_list_scenari("A", "B", "C", "D") }
+  end
+
+  test "change_list_scenari raises an error if the scenario does not exist" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    assert_raise(SOAP::FaultError){ @mail.change_list_scenari(list_name, 'fake_scenario') }
+    @mail.close_list(list_name)
+  end
+
+  test "change_list_scenari returns expected result" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    assert_boolean(@mail.change_list_scenari(list_name, 'private'))
+    notify("#{list_name} should be set to private now")
+    #@mail.close_list(list_name)
   end
 
   def teardown
