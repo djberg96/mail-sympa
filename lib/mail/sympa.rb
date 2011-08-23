@@ -1,5 +1,22 @@
-gem 'soap4r-ruby1.9' if RUBY_VERSION > '1.9'
-require 'soap/rpc/driver'
+# http://mislav.uniqpath.com/2011/06/ruby-verbose-mode/
+module Kernel
+  def silence_warnings
+    with_warnings(nil) { yield }
+  end
+        
+  def with_warnings(flag)
+    old_verbose, $VERBOSE = $VERBOSE, flag
+    yield
+  ensure
+    $VERBOSE = old_verbose
+  end
+end unless Kernel.respond_to? :silence_warnings
+                          
+silence_warnings do
+  gem 'soap4r-ruby1.9' if RUBY_VERSION > '1.9'
+  require 'soap/rpc/driver'
+end
+
 
 # The Mail module serves as a namespace only.
 module Mail
