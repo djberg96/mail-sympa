@@ -12,12 +12,16 @@
 #
 # For all tests to complete successfully, you must use admin credentials.
 ##############################################################################
-require 'rubygems'
-gem 'test-unit'
 
-require 'test/unit'
 require 'mail/sympa'
-require 'dbi/dbrc'
+
+silence_warnings do
+  require 'rubygems'
+  gem 'test-unit'
+
+  require 'dbi/dbrc'
+  require 'test/unit'
+end
 
 class MailSympaTest < Test::Unit::TestCase
   def self.startup
@@ -31,6 +35,18 @@ class MailSympaTest < Test::Unit::TestCase
     @pass  = @@info.passwd
     @list  = 'testlist'
     @nosub = 'partners'
+  end
+
+  def create_list(name)
+    begin
+      @mail.info(name)
+    rescue
+      begin
+        @mail.create_list(name, name)
+      rescue => e
+        fail "list does not exist and could not be created: #{name} - #{e.to_s}"
+      end
+    end
   end
 
   # Because most methods won't work without logging in first
@@ -103,6 +119,7 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "lists method accepts a topic and subtopic" do
     login
+    create_list(@list)
     assert_kind_of(Array, @mail.lists(@list))
     assert_kind_of(Array, @mail.lists(@list, @list))
   end
@@ -135,13 +152,13 @@ class MailSympaTest < Test::Unit::TestCase
     assert_kind_of(Array, @mail.complex_lists(@list, @list))
   end
 
-  test "lists method returns empty array if topic or subtopic is not found" do
+  test "complex_lists method returns empty array if topic or subtopic is not found" do
     login
     assert_equal([], @mail.complex_lists('bogus'))
     assert_equal([], @mail.complex_lists(@list, 'bogus'))
   end
 
-  test "lists method accepts a maximum of two arguments" do
+  test "complex_lists method accepts a maximum of two arguments" do
     assert_raise(ArgumentError){ @mail.complex_lists(@list, @list, @list) }
   end
 
@@ -170,6 +187,7 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "review method returns 'no_subscribers' if list has no subscribers" do
     login
+    create_list(@nosub)
     assert_equal(['no_subscribers'], @mail.review(@nosub))
   end
 
