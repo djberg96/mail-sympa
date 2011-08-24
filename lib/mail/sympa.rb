@@ -1,5 +1,22 @@
-gem 'soap4r-ruby1.9' if RUBY_VERSION > '1.9'
-require 'soap/rpc/driver'
+# http://mislav.uniqpath.com/2011/06/ruby-verbose-mode/
+module Kernel
+  def silence_warnings
+    with_warnings(nil) { yield }
+  end
+        
+  def with_warnings(flag)
+    old_verbose, $VERBOSE = $VERBOSE, flag
+    yield
+  ensure
+    $VERBOSE = old_verbose
+  end
+end unless Kernel.respond_to? :silence_warnings
+                          
+silence_warnings do
+  gem 'soap4r-ruby1.9' if RUBY_VERSION > '1.9'
+  require 'soap/rpc/driver'
+end
+
 
 # The Mail module serves as a namespace only.
 module Mail
@@ -258,16 +275,16 @@ module Mail
 
     # Adds the given +email+ to the editor role for +list_name+. If +quiet+
     # is set to true (the default) then no email notification is sent.
-    def add_moderation_privileges(email, list_name, quiet=true)
+    def add_admin_user(email, list_name, role, quiet=true)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'add_moderation_privileges', [list_name, email, quiet])
+      @soap.authenticateAndRun(@email, @cookie, 'add_admin_user', [list_name, email, role, quiet])
     end
 
     # Removes the given +email+ from the editor role for +list_name+. If +quiet+
     # is set to true (the default) then no email notification is sent.
-    def del_moderation_privileges(email, list_name, quiet=true)
+    def del_admin_user(email, list_name, role, quiet=true)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'del_moderation_privileges', [list_name, email, quiet])
+      @soap.authenticateAndRun(@email, @cookie, 'del_admin_user', [list_name, email, role, quiet])
     end
 
     # Changes the auth scenario for sending messages to a mailing list

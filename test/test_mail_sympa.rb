@@ -12,12 +12,16 @@
 #
 # For all tests to complete successfully, you must use admin credentials.
 ##############################################################################
-require 'rubygems'
-gem 'test-unit'
 
-require 'test/unit'
 require 'mail/sympa'
-require 'dbi/dbrc'
+
+silence_warnings do
+  require 'rubygems'
+  gem 'test-unit'
+
+  require 'dbi/dbrc'
+  require 'test/unit'
+end
 
 class MailSympaTest < Test::Unit::TestCase
   def self.startup
@@ -31,6 +35,18 @@ class MailSympaTest < Test::Unit::TestCase
     @pass  = @@info.passwd
     @list  = 'testlist'
     @nosub = 'partners'
+  end
+
+  def create_list(name)
+    begin
+      @mail.info(name)
+    rescue
+      begin
+        @mail.create_list(name, name)
+      rescue => e
+        fail "list does not exist and could not be created: #{name} - #{e.to_s}"
+      end
+    end
   end
 
   # Because most methods won't work without logging in first
@@ -103,6 +119,7 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "lists method accepts a topic and subtopic" do
     login
+    create_list(@list)
     assert_kind_of(Array, @mail.lists(@list))
     assert_kind_of(Array, @mail.lists(@list, @list))
   end
@@ -125,8 +142,12 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "complex_lists method with no arguments returns all lists" do
     login
+    # we need to create a list here for systems that are being tested without lists
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
     assert_kind_of(Array, @mail.lists)
     assert_kind_of(SOAP::Mapping::Object, @mail.complex_lists.first)
+    @mail.close_list(list_name)
   end
 
   test "complex_lists method accepts a topic and subtopic" do
@@ -147,13 +168,19 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "info method basic functionality" do
     login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
     assert_respond_to(@mail, :info)
-    assert_nothing_raised{ @mail.info(@list) }
+    assert_nothing_raised{ @mail.info(list_name) }
+    @mail.close_list(list_name)
   end
 
   test "info method expected results" do
     login
-    assert_kind_of(SOAP::Mapping::Object, @mail.info(@list))
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    assert_kind_of(SOAP::Mapping::Object, @mail.info(list_name))
+    @mail.close_list(list_name)
   end
 
   test "review method basic functionality" do
@@ -170,9 +197,10 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "review method returns 'no_subscribers' if list has no subscribers" do
     login
-    @mail.create_list(@nosub, 'Test List')
-    assert_equal(['no_subscribers'], @mail.review(@nosub))
-    @mail.close_list(@nosub)
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    assert_equal(['no_subscribers'], @mail.review(list_name))
+    @mail.close_list(list_name)
   end
 
   test "review method raises an error if list isn't found" do
@@ -195,13 +223,19 @@ class MailSympaTest < Test::Unit::TestCase
   test "am_i basic functionality" do
     login
     assert_respond_to(@mail, :am_i?)
-    assert_nothing_raised{ @mail.am_i?(@user, @list) }
-    assert_nothing_raised{ @mail.am_i?(@user, @list, 'owner') }
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    assert_nothing_raised{ @mail.am_i?(@user, list_name) }
+    assert_nothing_raised{ @mail.am_i?(@user, list_name, 'owner') }
+    @mail.close_list(list_name)
   end
 
   test "am_i returns expected result" do
     login
-    assert_boolean(@mail.am_i?(@user, @list))
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    assert_boolean(@mail.am_i?(@user, list_name))
+    @mail.close_list(list_name)
   end
 
   test "am_i function name must be owner or editor" do
@@ -218,8 +252,11 @@ class MailSympaTest < Test::Unit::TestCase
 
   test "add returns expected result" do
     login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
     notify("The documentation says this should return a boolean")
-    assert_boolean(@mail.add('test@foo.com', @list, 'test'))
+    assert_boolean(@mail.add('test@foo.com', list_name, 'test'))
+    @mail.close_list(list_name)
   end
 
   test "add requires at least three arguments" do
@@ -235,7 +272,11 @@ class MailSympaTest < Test::Unit::TestCase
   test "del returns expected result" do
     login
     notify("The documentation says this should return a boolean")
-    assert_boolean(@mail.del('test@foo.com', @list))
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    @mail.add('test@foo.com', list_name, 'test')
+    assert_boolean(@mail.del('test@foo.com', list_name))
+    @mail.close_list(list_name)
   end
 
   test "delete is an alias for del" do
@@ -269,7 +310,7 @@ class MailSympaTest < Test::Unit::TestCase
     list_name = "test-#{Time.now.to_i.to_s}"
     @mail.create_list(list_name, 'Test List')
     @mail.subscribe(list_name)
-    assert_boolean(@mail.signoff(@list))
+    assert_boolean(@mail.signoff(list_name))
     @mail.close_list(list_name)
   end
 
@@ -330,50 +371,60 @@ class MailSympaTest < Test::Unit::TestCase
   end
 
   test "add moderation privileges basic functionality" do
-    assert_respond_to(@mail, :add_moderation_privileges)
+    assert_respond_to(@mail, :add_admin_user)
   end
 
-  test "add_moderation_privileges requires two arguments" do
-    assert_raise(ArgumentError){ @mail.add_moderation_privileges}
-    assert_raise(ArgumentError){ @mail.add_moderation_privileges("A") }
-    assert_raise(ArgumentError){ @mail.add_moderation_privileges("A", "B", "C", "D") }
+  test "add_admin_user requires three arguments" do
+    assert_raise(ArgumentError){ @mail.add_admin_user}
+    assert_raise(ArgumentError){ @mail.add_admin_user("A","B") }
+    assert_raise(ArgumentError){ @mail.add_admin_user("A", "B", "C", "D", "E") }
   end
 
-  test "add_moderation_privileges returns expected result" do
+  test "add_admin_user requires a valid role" do
     login
     list_name = "test-#{Time.now.to_i.to_s}"
     @mail.create_list(list_name, 'Test List')
     @mail.add('test@foo.com', list_name, 'Test EmailAccount')
-    assert_boolean(@mail.add_moderation_privileges('test@foo.com', list_name))
+    assert_raise(SOAP::FaultError){ @mail.add_admin_user('test@foo.com', list_name, 'meow') }
     @mail.close_list(list_name)
+  end
+
+  test "add_admin_user returns expected result" do
+    login
+    list_name = "test-#{Time.now.to_i.to_s}"
+    @mail.create_list(list_name, 'Test List')
+    @mail.add('test@foo.com', list_name, 'Test EmailAccount')
+    assert_boolean(@mail.add_admin_user('test@foo.com', list_name, 'editor'))
+    @mail.close_list(list_name)
+    notify("#{list_name} should have an editor")
   end
 
   test "del moderation privileges basic functionality" do
-    assert_respond_to(@mail, :del_moderation_privileges)
+    assert_respond_to(@mail, :del_admin_user)
   end
 
-  test "del_moderation_privileges requires two arguments" do
-    assert_raise(ArgumentError){ @mail.del_moderation_privileges}
-    assert_raise(ArgumentError){ @mail.del_moderation_privileges("A") }
-    assert_raise(ArgumentError){ @mail.del_moderation_privileges("A", "B", "C", "D") }
+  test "del_admin_user requires three arguments" do
+    assert_raise(ArgumentError){ @mail.del_admin_user}
+    assert_raise(ArgumentError){ @mail.del_admin_user("A", "B") }
+    assert_raise(ArgumentError){ @mail.del_admin_user("A", "B", "C", "D", "E") }
   end
 
-  test "del_moderation_privileges raises an error if the user is not a moderator" do
+  test "del_admin_user raises an error if the user is not already an admin user" do
     login
     list_name = "test-#{Time.now.to_i.to_s}"
     @mail.create_list(list_name, 'Test List')
     @mail.add('test@foo.com', list_name, 'Test EmailAccount')
-    assert_raise(SOAP::FaultError){ @mail.del_moderation_privileges('test@foo.com', list_name) }
+    assert_raise(SOAP::FaultError){ @mail.del_admin_user('test@foo.com', list_name, 'editor') }
     @mail.close_list(list_name)
   end
 
-  test "del_moderation_privileges returns expected result" do
+  test "del_admin_user returns expected result" do
     login
     list_name = "test-#{Time.now.to_i.to_s}"
     @mail.create_list(list_name, 'Test List')
     @mail.add('test@foo.com', list_name, 'Test EmailAccount')
-    @mail.add_moderation_privileges('test@foo.com', list_name)
-    assert_boolean(@mail.del_moderation_privileges('test@foo.com', list_name))
+    @mail.add_admin_user('test@foo.com', list_name, 'editor')
+    assert_boolean(@mail.del_admin_user('test@foo.com', list_name, 'editor'))
     @mail.close_list(list_name)
   end
 
@@ -401,7 +452,7 @@ class MailSympaTest < Test::Unit::TestCase
     @mail.create_list(list_name, 'Test List')
     assert_boolean(@mail.change_list_scenari(list_name, 'private'))
     notify("#{list_name} should be set to private now")
-    #@mail.close_list(list_name)
+    @mail.close_list(list_name)
   end
 
   def teardown
