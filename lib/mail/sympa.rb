@@ -3,7 +3,7 @@ module Kernel
   def silence_warnings
     with_warnings(nil) { yield }
   end
-        
+
   def with_warnings(flag)
     old_verbose, $VERBOSE = $VERBOSE, flag
     yield
@@ -11,9 +11,9 @@ module Kernel
     $VERBOSE = old_verbose
   end
 end unless Kernel.respond_to? :silence_warnings
-                          
+
 silence_warnings do
-  gem 'soap4r-ruby1.9' if RUBY_VERSION > '1.9'
+  gem 'soap4r-ruby1.9'
   require 'soap/rpc/driver'
 end
 
@@ -26,7 +26,7 @@ module Mail
     class Error < StandardError; end
 
     # The version of the mail-sympa library.
-    VERSION = '1.1.0'
+    VERSION = '1.2.0'
 
     # The session cookie returned by the login method.
     attr_reader :cookie
@@ -268,7 +268,7 @@ module Mail
 
     # Run command in trusted context.
     def authenticate_remote_app_and_run(app_name, app_password, variables, service, parameters)
-      @soap.authenticateRemoteAppAndRun( app_name, app_password, variables, service, parameters ) 
+      @soap.authenticateRemoteAppAndRun( app_name, app_password, variables, service, parameters )
     end
 
     alias authenticateRemoteAppAndRun authenticate_remote_app_and_run
