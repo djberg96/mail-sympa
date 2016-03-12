@@ -2,7 +2,7 @@ require 'rubygems'
 
 Gem::Specification.new do |gem|
   gem.name        = 'mail-sympa'
-  gem.version     = '1.1.0'
+  gem.version     = '1.2.0'
   gem.authors     = ['Daniel J. Berger', 'David Salisbury', 'Mark Sallee']
   gem.license     = 'Artistic 2.0'
   gem.description = 'Ruby interface for the Sympa mailing list server'
@@ -13,7 +13,8 @@ Gem::Specification.new do |gem|
 
   gem.extra_rdoc_files  = ['README', 'CHANGES', 'MANIFEST']
 
-  gem.add_dependency('soap4r', '>= 1.5.8')
+  gem.add_dependency('soap4r-ruby1.9', '>= 2.0.0')
+  gem.add_development_dependency('test-unit', '>= 3.0.0')
 
   gem.summary = <<-EOF
     The mail-sympa library provides a Ruby interface to the Sympa mailing
