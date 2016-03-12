@@ -12,16 +12,9 @@
 #
 # For all tests to complete successfully, you must use admin credentials.
 ##############################################################################
-
 require 'mail/sympa'
-
-silence_warnings do
-  require 'rubygems'
-  gem 'test-unit'
-
-  require 'dbi/dbrc'
-  require 'test/unit'
-end
+require 'dbi/dbrc'
+require 'test-unit'
 
 class MailSympaTest < Test::Unit::TestCase
   def self.startup
@@ -55,7 +48,7 @@ class MailSympaTest < Test::Unit::TestCase
   end
 
   test "version constant is expected value" do
-    assert_equal('1.1.0', Mail::Sympa::VERSION)
+    assert_equal('1.2.0', Mail::Sympa::VERSION)
   end
 
   test "endpoint method basic functionality" do
