@@ -1,3 +1,8 @@
+= 1.2.0 - 12-Mar-2016
+* No longer supports Ruby 1.8, and made corresponding changes to code.
+* Updated the Rakefile tasks. Now assumes Rubygems 2.x.
+* Removed Gemfile.lock.
+
 = 1.1.0 - 19-Jul-2011
 * Added the authenticate_remote_app_and_run method to run in trusted context
   and support for Ruby 1.9+. Thanks go to Blair Christensen for patches.
