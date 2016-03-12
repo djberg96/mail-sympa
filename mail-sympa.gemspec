@@ -15,6 +15,7 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency('soap4r-ruby1.9', '>= 2.0.0')
   gem.add_development_dependency('test-unit', '>= 3.0.0')
+  gem.add_development_dependency('dbi-dbrc')
 
   gem.summary = <<-EOF
     The mail-sympa library provides a Ruby interface to the Sympa mailing
