@@ -1,7 +1,6 @@
 require 'rake'
 require 'rake/clean'
 require 'rake/testtask'
-include Config
 
 CLEAN.include("**/*.gem", "**/*.rbc")
 
@@ -13,8 +12,9 @@ namespace 'gem' do
 
   desc 'Build the mail-sympa gem'
   task :build => [:clean] do
+    require 'rubygems/package'
     spec = eval(IO.read('mail-sympa.gemspec'))
-    Gem::Builder.new(spec).build
+    Gem::Package.build(spec)
   end
 
   desc 'Install the mail-sympa gem'
