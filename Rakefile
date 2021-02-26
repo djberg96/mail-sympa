@@ -14,13 +14,13 @@ namespace 'gem' do
   task :build => [:clean] do
     require 'rubygems/package'
     spec = eval(IO.read('mail-sympa.gemspec'))
-    Gem::Package.build(spec, true)
+    Gem::Package.build(spec)
   end
 
   desc 'Install the mail-sympa gem'
   task :install => [:build] do
     file = Dir["*.gem"].first
-    sh "gem install #{file}"
+    sh "gem install -l #{file}"
   end
 end
 
