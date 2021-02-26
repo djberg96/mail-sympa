@@ -24,7 +24,7 @@ mail.add('foo@bar.com', 'some_list', 'Mr. Foo', true)
 ```
 
 ## Known Issues
-The Sympa#add and Sympa#del methods return an empty string instead of
+The `Sympa#add` and `Sympa#del` methods return an empty string instead of
 a boolean. I am unsure why.
 
 ## Acknowledgements
