@@ -1,22 +1,22 @@
-= 1.2.0 - 12-Mar-2016
+## 1.2.0 - 12-Mar-2016
 * No longer supports Ruby 1.8, and made corresponding changes to code.
 * Updated the Rakefile tasks. Now assumes Rubygems 2.x.
 * Added a mail-sympa.rb file for convenience.
 * Removed Gemfile.lock.
 
-= 1.1.0 - 19-Jul-2011
-* Added the authenticate_remote_app_and_run method to run in trusted context
+## 1.1.0 - 19-Jul-2011
+* Added the `authenticate_remote_app_and_run` method to run in trusted context
   and support for Ruby 1.9+. Thanks go to Blair Christensen for patches.
 
-= 1.0.0 - 16-Jun-2011
-* Added the create_list and close_list methods and corresponding tests. Thanks
+## 1.0.0 - 16-Jun-2011
+* Added the `create_list` and `close_list` methods and corresponding tests. Thanks
   go to Blair Christensen for both.
 * Added 0.1.1 changes to this file that I forgot.
 * Bumped the version to 1.0.0, as I have no more future plans for this library.
 
-= 0.1.1 - 17-Jan-2011
+## 0.1.1 - 17-Jan-2011
 * Fixed two parser warnings caused by missing commas.
 * Added a clean and default task to the Rakefile.
 
-= 0.1.0 - 13-Apr-2010
+## 0.1.0 - 13-Apr-2010
 * Initial release
