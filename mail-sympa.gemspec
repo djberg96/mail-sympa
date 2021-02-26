@@ -4,7 +4,7 @@ Gem::Specification.new do |spec|
   spec.name        = 'mail-sympa'
   spec.version     = '1.2.0'
   spec.authors     = ['Daniel J. Berger', 'David Salisbury', 'Mark Sallee']
-  spec.license     = 'Artistic 2.0'
+  spec.license     = 'Artistic-2.0'
   spec.description = 'Ruby interface for the Sympa mailing list server'
   spec.email       = 'djberg96@gmail.com'
   spec.files       = Dir['**/*'].reject{ |f| f.include?('git') }
@@ -12,8 +12,6 @@ Gem::Specification.new do |spec|
   spec.homepage    = 'http://github.com/djberg96/mail-sympa'
 
   spec.required_ruby_version = '>= 1.9.3'
-
-  spec.extra_rdoc_files  = ['README', 'CHANGES', 'MANIFEST']
 
   spec.add_dependency('soap4r-ruby1.9', '>= 2.0.0')
   spec.add_development_dependency('test-unit', '>= 3.0.0')
