@@ -13,9 +13,9 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = '>= 1.9.3'
 
-  spec.add_dependency('soap4r-ruby1.9', '>= 2.0.0')
-  spec.add_development_dependency('test-unit', '>= 3.0.0')
-  spec.add_development_dependency('dbi-dbrc')
+  spec.add_dependency('soap4r-ruby1.9', '~> 2.0')
+  spec.add_development_dependency('test-unit', '~> 3.3')
+  spec.add_development_dependency('dbi-dbrc', '~> 1.4')
 
   spec.summary = <<-EOF
     The mail-sympa library provides a Ruby interface to the Sympa mailing
