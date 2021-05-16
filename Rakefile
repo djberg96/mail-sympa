@@ -13,7 +13,7 @@ namespace 'gem' do
   desc 'Build the mail-sympa gem'
   task :build => [:clean] do
     require 'rubygems/package'
-    spec = eval(IO.read('mail-sympa.gemspec'))
+    spec = Gem::Specification.load('mail-sympa.gemspec')
     Gem::Package.build(spec)
   end
 

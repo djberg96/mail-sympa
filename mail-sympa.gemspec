@@ -12,6 +12,7 @@ Gem::Specification.new do |spec|
   spec.homepage    = 'http://github.com/djberg96/mail-sympa'
 
   spec.add_dependency('soap4r-ruby1.9', '~> 2.0')
+  spec.add_development_dependency('rake')
   spec.add_development_dependency('test-unit', '~> 3.3')
   spec.add_development_dependency('dbi-dbrc', '~> 1.4')
 
