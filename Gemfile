@@ -1,9 +1,3 @@
-source 'http://rubygems.org'
-gem 'soap4r-ruby1.9'
-
-group :development, :test do
-  gem 'test-unit'
-  gem 'dbi-dbrc'
+source 'http://rubygems.org' do
+  gemspec
 end
-
-# vim: syntax=ruby
