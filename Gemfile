@@ -1,3 +1,2 @@
-source 'http://rubygems.org' do
-  gemspec
-end
+source 'http://rubygems.org'
+gemspec
