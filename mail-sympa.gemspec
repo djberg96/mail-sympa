@@ -11,7 +11,12 @@ Gem::Specification.new do |spec|
   spec.test_files  = ['test/test_mail_sympa.rb']
   spec.homepage    = 'http://github.com/djberg96/mail-sympa'
 
+  # This might require an update eventually
   spec.add_dependency('soap4r-ruby1.9', '~> 2.0')
+
+  # Because soap4r doesn't explicitly designate it as a dependency
+  spec.add_dependency('xmlparser', '~> 0.7')
+
   spec.add_development_dependency('rake')
   spec.add_development_dependency('test-unit', '~> 3.3')
   spec.add_development_dependency('dbi-dbrc', '~> 1.4')

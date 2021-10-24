@@ -3,6 +3,7 @@ The mail-sympa library is Ruby interface for the Sympa mailing list management s
 
 ## Prerequisites
 * soap4r 1.5.8 or later
+* xmlparser
 
 ## Installation
 `gem install mail-sympa`
