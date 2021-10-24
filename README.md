@@ -31,6 +31,10 @@ a boolean. I am unsure why.
 ## Acknowledgements
 Thanks go to Blair Christensen for some nice patches for this library.
 
+## TODO
+The test suite should be reworked to use rspec and a mock sympa server instead
+of relying on an actual server to test against.
+
 ## License
 Artistic-2.0
 
