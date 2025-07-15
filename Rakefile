@@ -29,4 +29,23 @@ Rake::TestTask.new('test') do |t|
   t.verbose = true
 end
 
+begin
+  require 'rspec/core/rake_task'
+
+  RSpec::Core::RakeTask.new('spec') do |t|
+    t.rspec_opts = ['--color', '--format', 'documentation']
+  end
+
+  desc 'Run RSpec tests against mock server'
+  task :spec_mock => :spec
+
+rescue LoadError
+  # RSpec not available
+  task :spec do
+    puts "RSpec not available. Install it with: gem install rspec"
+  end
+
+  task :spec_mock => :spec
+end
+
 task :default => :test

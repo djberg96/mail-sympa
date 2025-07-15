@@ -17,20 +17,23 @@ app = Flask(__name__)
 
 def extract_soap_method(soap_body):
     """Extract the SOAP method name from the request body"""
-    # Look for method calls in the SOAP body
+    # Look for method calls in the SOAP body, prioritizing namespaced elements
     method_patterns = [
-        r'<(\w+).*?>',  # General method pattern
-        r'<ns\d+:(\w+).*?>',  # Namespaced method pattern
-        r'<soap:(\w+).*?>',  # SOAP method pattern
+        r'<sym:(\w+)[^>]*>',      # sym: namespace (most specific)
+        r'<sympa:(\w+)[^>]*>',    # sympa: namespace
+        r'<(\w+)[^>]*>.*?</\1>',  # General method pattern with closing tag
+        r'<(\w+)[^>]*>',          # General method pattern
     ]
 
     for pattern in method_patterns:
-        match = re.search(pattern, soap_body)
-        if match:
-            method = match.group(1)
-            if method not in ['Envelope', 'Body', 'Header']:
+        matches = re.findall(pattern, soap_body)
+        for method in matches:
+            if method not in ['Envelope', 'Body', 'Header', 'soap', 'xmlns']:
+                logger.info(f"Found method: {method} using pattern: {pattern}")
                 return method
 
+    # If no method found, try to extract from SOAPAction header or fallback
+    logger.warning(f"Could not extract method from SOAP body: {soap_body[:100]}...")
     return 'unknown'
 
 def create_soap_response(method, result):
