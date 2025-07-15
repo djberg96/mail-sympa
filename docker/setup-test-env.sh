@@ -5,20 +5,32 @@
 
 echo "Setting up Sympa test environment..."
 
-# Check if Docker and docker-compose are available
+# Check which compose file to use
+COMPOSE_FILE="../docker-compose.simple.yml"
+if [ "$1" = "mock" ]; then
+    COMPOSE_FILE="../docker-compose.mock.yml"
+    echo "Using mock Sympa server..."
+elif [ "$1" = "mysql" ]; then
+    COMPOSE_FILE="../docker-compose.mysql.yml"
+    echo "Using MySQL-based Sympa server..."
+else
+    echo "Using PostgreSQL-based Sympa server..."
+fi
+
+# Check if Docker and docker compose are available
 if ! command -v docker &> /dev/null; then
     echo "Error: Docker is not installed or not in PATH"
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "Error: docker-compose is not installed or not in PATH"
+if ! docker compose version &> /dev/null; then
+    echo "Error: Docker Compose is not available"
     exit 1
 fi
 
 # Start the services
 echo "Starting Sympa services..."
-docker-compose -f docker-compose.simple.yml up -d
+docker compose -f "$COMPOSE_FILE" up -d
 
 # Wait for services to be ready
 echo "Waiting for services to start..."
@@ -26,7 +38,7 @@ sleep 30
 
 # Check if services are running
 echo "Checking service status..."
-docker-compose -f docker-compose.simple.yml ps
+docker compose -f "$COMPOSE_FILE" ps
 
 # Check if SOAP endpoint is accessible
 echo "Testing SOAP endpoint..."
@@ -49,4 +61,4 @@ echo "To create a .dbirc file for tests, run:"
 echo "  ./create-test-config.sh"
 echo ""
 echo "To stop the services:"
-echo "  docker-compose -f docker-compose.simple.yml down"
+echo "  docker compose -f $COMPOSE_FILE down"

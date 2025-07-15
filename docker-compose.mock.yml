@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mock-sympa:
+    build:
+      context: .
+      dockerfile: docker/mock-sympa/Dockerfile
+    container_name: mock_sympa_server
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DOMAIN=localhost
+    networks:
+      - sympa_network
+
+networks:
+  sympa_network:
+    driver: bridge

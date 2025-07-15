@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - sympa_network
     healthcheck:
@@ -22,7 +22,7 @@ services:
       retries: 5
 
   sympa:
-    image: sympa/sympa:6.2.70
+    image: tozd/sympa:latest
     container_name: sympa_server
     depends_on:
       postgres:

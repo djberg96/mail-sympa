@@ -6,6 +6,7 @@ This directory contains Docker configuration to set up a Sympa mailing list serv
 
 1. **Start the test environment:**
    ```bash
+   cd docker
    ./setup-test-env.sh
    ```
 
@@ -58,22 +59,22 @@ If you prefer to set up manually:
 
 1. **Start services:**
    ```bash
-   docker-compose -f docker-compose.simple.yml up -d
+   docker compose -f docker-compose.simple.yml up -d
    ```
 
 2. **Check status:**
    ```bash
-   docker-compose -f docker-compose.simple.yml ps
+   docker compose -f docker-compose.simple.yml ps
    ```
 
 3. **View logs:**
    ```bash
-   docker-compose -f docker-compose.simple.yml logs -f sympa
+   docker compose -f docker-compose.simple.yml logs -f sympa
    ```
 
 4. **Stop services:**
    ```bash
-   docker-compose -f docker-compose.simple.yml down
+   docker compose -f docker-compose.simple.yml down
    ```
 
 ## Troubleshooting
@@ -84,12 +85,12 @@ If the SOAP endpoint is not responding:
 
 1. Check service status:
    ```bash
-   docker-compose -f docker-compose.simple.yml ps
+   docker compose -f docker-compose.simple.yml ps
    ```
 
 2. Check Sympa logs:
    ```bash
-   docker-compose -f docker-compose.simple.yml logs sympa
+   docker compose -f docker-compose.simple.yml logs sympa
    ```
 
 3. Test SOAP endpoint:
@@ -103,12 +104,12 @@ If there are database connectivity problems:
 
 1. Check PostgreSQL logs:
    ```bash
-   docker-compose -f docker-compose.simple.yml logs postgres
+   docker compose -f docker-compose.simple.yml logs postgres
    ```
 
 2. Test database connection:
    ```bash
-   docker-compose -f docker-compose.simple.yml exec postgres psql -U sympa -d sympa -c "\dt"
+   docker compose -f docker-compose.simple.yml exec postgres psql -U sympa -d sympa -c "\dt"
    ```
 
 ### Test Failures
