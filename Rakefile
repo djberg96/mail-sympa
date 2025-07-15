@@ -48,4 +48,4 @@ rescue LoadError
   task :spec_mock => :spec
 end
 
-task :default => :test
+task :default => :spec
