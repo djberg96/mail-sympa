@@ -1,4 +1,6 @@
 require 'savon'
+require 'json'
+require 'ostruct'
 
 
 # The Mail module serves as a namespace only.
@@ -111,7 +113,13 @@ module Mail
         })
 
         # Extract the result from the response
-        result = response.body.dig("#{service}_response".to_sym, :return) ||
+        # Try different response key formats
+        response_key = "#{service}_response".to_sym
+        camel_case_key = "#{service.to_s.gsub(/([A-Z])/, '_\1').downcase}_response".to_sym
+
+        result = response.body.dig(response_key, :return) ||
+                 response.body.dig(camel_case_key, :return) ||
+                 response.body.dig("#{service.downcase}_response".to_sym, :return) ||
                  response.body[:return] ||
                  response.body
 
@@ -126,17 +134,43 @@ module Mail
           end
         when Array
           result
-        when String
+        when String, Nori::StringWithAttributes
+          # Convert to string in case it's a Nori::StringWithAttributes
+          result_str = result.to_s
           # Try to parse string responses from mock server
-          if result.start_with?('[') && result.end_with?(']')
-            # Parse array-like strings from mock server
-            # Remove brackets and quotes, split by comma
-            items = result[1..-2].split(',').map { |item|
-              item.strip.gsub(/^['"]|['"]$/, '')
-            }
-            items.reject(&:empty?)
+          if result_str.start_with?('[') && result_str.end_with?(']')
+            begin
+              # Try to parse as JSON first
+              parsed = JSON.parse(result_str)
+              if parsed.is_a?(Array)
+                # Convert to Hash objects to match expected behavior
+                parsed.map { |item|
+                  if item.is_a?(Hash)
+                    item
+                  else
+                    item
+                  end
+                }
+              else
+                parsed
+              end
+            rescue JSON::ParserError
+              # Fallback to simple parsing for non-JSON arrays
+              # Remove brackets and quotes, split by comma
+              items = result_str[1..-2].split(',').map { |item|
+                item.strip.gsub(/^['"]|['"]$/, '')
+              }
+              items.reject(&:empty?)
+            end
+          elsif result_str.start_with?('{') && result_str.end_with?('}')
+            # Try to parse as JSON hash
+            begin
+              JSON.parse(result_str)
+            rescue JSON::ParserError
+              result_str
+            end
           else
-            result
+            result_str
           end
         else
           result
