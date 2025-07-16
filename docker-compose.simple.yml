@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: sympa_postgres
+    environment:
+      POSTGRES_DB: sympa
+      POSTGRES_USER: sympa
+      POSTGRES_PASSWORD: sympa123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - sympa_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sympa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sympa:
+    image: tozd/sympa:latest
+    container_name: sympa_server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SYMPA_DB_TYPE: PostgreSQL
+      SYMPA_DB_NAME: sympa
+      SYMPA_DB_HOST: postgres
+      SYMPA_DB_USER: sympa
+      SYMPA_DB_PASSWORD: sympa123
+      SYMPA_DOMAIN: localhost
+      SYMPA_LISTMASTER: postmaster@localhost
+      SYMPA_EMAIL: sympa@localhost
+      SYMPA_WWSYMPA_URL: http://localhost/sympa
+      SYMPA_SOAP: on
+    ports:
+      - "8080:80"
+      - "8025:25"
+    volumes:
+      - sympa_data:/var/lib/sympa
+      - ./docker/simple-config:/etc/sympa/custom
+    networks:
+      - sympa_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/sympasoap?wsdl"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  sympa_data:
+
+networks:
+  sympa_network:
+    driver: bridge

@@ -8,18 +8,17 @@ Gem::Specification.new do |spec|
   spec.description = 'Ruby interface for the Sympa mailing list server'
   spec.email       = 'djberg96@gmail.com'
   spec.files       = Dir['**/*'].reject{ |f| f.include?('git') }
-  spec.test_files  = ['test/test_mail_sympa.rb']
+  spec.test_files  = ['test/test_mail_sympa.rb', 'spec/mail_sympa_spec.rb']
   spec.homepage    = 'http://github.com/djberg96/mail-sympa'
 
-  # This might require an update eventually
-  spec.add_dependency('soap4r-ruby1.9', '~> 2.0')
+  # Using Savon for SOAP client functionality (modern, Ruby 3.3+ compatible)
+  spec.add_dependency('savon', '~> 2.12')
 
-  # Because soap4r doesn't explicitly designate it as a dependency
-  spec.add_dependency('xmlparser', '~> 0.7')
+  # Additional dependency for XML handling
+  spec.add_dependency('nokogiri', '~> 1.13')
 
   spec.add_development_dependency('rake')
-  spec.add_development_dependency('test-unit', '~> 3.3')
-  spec.add_development_dependency('dbi-dbrc', '~> 1.4')
+  spec.add_development_dependency('rspec', '~> 3.0')
 
   spec.metadata = {
     'homepage_uri'      => 'https://github.com/djberg96/mail-sympa',
