@@ -1,2 +1,9 @@
 .*.swp
 *.lock
+
+# Docker volumes and runtime data
+docker/volumes/
+.env
+
+# Test configuration files with credentials
+.dbrc

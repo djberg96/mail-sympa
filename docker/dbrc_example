@@ -1,0 +1,12 @@
+# Configuration for testing mail-sympa library against Docker Sympa instance
+#
+# This file should be used with the dbi-dbrc gem for testing
+# Place this in your ~/.dbrc file or use it with DBI::DBRC.new('sympa_docker')
+#
+# Format: database_name username password driver_url
+#
+# For Docker testing:
+sympa_docker listmaster@localhost listmaster_password http://localhost:8080/sympasoap
+
+# Alternative test user (you'll need to create this user via the web interface)
+sympa_test_user test@localhost test_password http://localhost:8080/sympasoap
