@@ -1,4 +1,5 @@
 ## Unreleased
+* Removed the obsolete simulated SOAP server and its support scripts.
 * Added docker:build and docker:spec tasks for real Sympa SOAP integration tests.
 * Fixed Savon authentication wrappers, SOAPAction headers, encoded parameters,
   native SOAP result decoding, and login session handling.

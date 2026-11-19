@@ -48,10 +48,6 @@ mail.create_list('some_list', 'Example list', 'discussion_list', 'Description', 
 ## Acknowledgements
 Thanks go to Blair Christensen for some nice patches for this library.
 
-## TODO
-The test suite should be reworked to use rspec and a mock sympa server instead
-of relying on an actual server to test against.
-
 ## License
 Artistic-2.0
 

@@ -17,14 +17,15 @@ dependencies are installed inside the image; no host `bundle install` is needed.
 1. A fresh SQLite database and Sympa list state.
 2. Two password-authenticated users, two lists, a subscriber, and a trusted SOAP application.
 3. The actual Sympa SOAP service and WWSympa WSDL endpoint served by Apache.
-4. The complete RSpec suite, with no mock exclusions.
+4. The complete RSpec suite, with no excluded examples.
 
 The specs verify valid and invalid authentication, sessions, list discovery,
 structured SOAP results, permissions, trusted-app calls, subscriber changes,
 and list creation and closure. Assertions check resulting server state as well
 as return values.
 
-The runner waits up to 30 seconds for HTTP readiness, returns a failing status
+The runner prints the installed Sympa package version, waits up to 30 seconds
+for HTTP readiness, returns a failing status
 on provisioning, startup, or spec failures, and prints the HTTP server log when
 startup or tests fail, along with Sympa's syslog. Docker removes the container afterward, including its
 database, lists, and queued notifications.
@@ -81,5 +82,8 @@ above: these tests change server state.
 Server behavior follows the [Sympa SOAP/HTTP API](https://www.sympa.community/manual/customize/soap-api.html).
 See also Sympa's [SQLite setup instructions](https://www.sympa.community/manual/install/setup-database-sqlite.html).
 
-The older Compose files, mock server, and setup scripts are legacy experiments;
+The older Compose files and setup scripts are legacy experiments;
 neither rake task uses them.
+
+The retired SOAP simulator and its support files are preserved on the
+`archive/mock-sympa` branch.

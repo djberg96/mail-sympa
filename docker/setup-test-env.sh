@@ -6,16 +6,20 @@
 echo "Setting up Sympa test environment..."
 
 # Check which compose file to use
-COMPOSE_FILE="../docker-compose.simple.yml"
-if [ "$1" = "mock" ]; then
-    COMPOSE_FILE="../docker-compose.mock.yml"
-    echo "Using mock Sympa server..."
-elif [ "$1" = "mysql" ]; then
+case "${1:-postgres}" in
+mysql)
     COMPOSE_FILE="../docker-compose.mysql.yml"
     echo "Using MySQL-based Sympa server..."
-else
+    ;;
+postgres)
+    COMPOSE_FILE="../docker-compose.simple.yml"
     echo "Using PostgreSQL-based Sympa server..."
-fi
+    ;;
+*)
+    echo "Usage: $0 [postgres|mysql]" >&2
+    exit 1
+    ;;
+esac
 
 # Check if Docker and docker compose are available
 if ! command -v docker &> /dev/null; then

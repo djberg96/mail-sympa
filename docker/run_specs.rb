@@ -6,6 +6,7 @@ require 'tempfile'
 
 # Every container gets its own SQLite database and list state. No mail daemons
 # are started; SOAP operations run synchronously and notification mail is spooled.
+abort 'Sympa package is missing' unless system('dpkg-query', '-W', 'sympa')
 abort 'Sympa logging setup failed' unless system('rsyslogd', '-f', '/app/docker/test-syslog.conf', '-i', '/tmp/mail-sympa-syslog.pid')
 abort 'Sympa database initialization failed' unless system('sympa', 'check')
 abort 'Sympa fixture provisioning failed' unless system('perl', 'docker/seed_sympa.pl')
