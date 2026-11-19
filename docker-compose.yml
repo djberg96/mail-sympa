@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: sympa_postgres
+    environment:
+      POSTGRES_DB: sympa
+      POSTGRES_USER: sympa
+      POSTGRES_PASSWORD: sympa_password
+      POSTGRES_HOST_AUTH_METHOD: md5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - sympa_network
+
+  sympa:
+    build:
+      context: .
+      dockerfile: docker/sympa/Dockerfile
+    container_name: sympa_server
+    depends_on:
+      - postgres
+    environment:
+      - SYMPA_DB_HOST=postgres
+      - SYMPA_DB_NAME=sympa
+      - SYMPA_DB_USER=sympa
+      - SYMPA_DB_PASSWORD=sympa_password
+      - SYMPA_DOMAIN=localhost
+      - SYMPA_LISTMASTER=postmaster@localhost
+    ports:
+      - "80:80"
+      - "25:25"
+      - "587:587"
+    volumes:
+      - sympa_data:/var/lib/sympa
+      - sympa_config:/etc/sympa
+      - ./docker/sympa/config:/etc/sympa/config
+    networks:
+      - sympa_network
+
+volumes:
+  postgres_data:
+  sympa_data:
+  sympa_config:
+
+networks:
+  sympa_network:
+    driver: bridge

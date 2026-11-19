@@ -1,21 +1,4 @@
-# http://mislav.uniqpath.com/2011/06/ruby-verbose-mode/
-module Kernel
-  def silence_warnings
-    with_warnings(nil) { yield }
-  end
-
-  def with_warnings(flag)
-    old_verbose, $VERBOSE = $VERBOSE, flag
-    yield
-  ensure
-    $VERBOSE = old_verbose
-  end
-end unless Kernel.respond_to? :silence_warnings
-
-silence_warnings do
-  gem 'soap4r-ruby1.9'
-  require 'soap/rpc/driver'
-end
+require 'savon'
 
 
 # The Mail module serves as a namespace only.
@@ -48,30 +31,20 @@ module Mail
       @endpoint  = endpoint.to_s # Allow for URI objects
       @namespace = namespace
 
-      @soap = SOAP::RPC::Driver.new(endpoint, namespace)
+      @client = Savon.client(
+        wsdl: nil,
+        endpoint: @endpoint,
+        namespace: @namespace,
+        element_form_default: :qualified,
+        env_namespace: :soap,
+        namespace_identifier: :sym,
+        namespaces: { 'xmlns:soapenc' => 'http://schemas.xmlsoap.org/soap/encoding/' },
+        log: false,  # Set to true for debugging
+        pretty_print_xml: false
+      )
 
       @email    = nil
-      @password = nil
       @cookie   = nil
-
-      @soap.add_method('login', 'email', 'password')
-
-      @soap.add_method(
-        'authenticateAndRun',
-        'email',
-        'cookie',
-        'service',
-        'parameters'
-      )
-
-      @soap.add_method(
-        'authenticateRemoteAppAndRun',
-        'appname',
-        'apppassword',
-        'vars',
-        'service',
-        'parameters'
-      )
     end
 
     # Authenticate with the Sympa server. This method must be called before
@@ -83,9 +56,13 @@ module Mail
     #  sympa.login(email, password)
     #
     def login(email, password)
-      @email    = email
-      @password = password
-      @cookie   = @soap.login(email, password)
+      @cookie = nil
+      email = email.to_s.strip.downcase
+      cookie = soap_call(:login, email: email, password: password)
+      raise Error, 'Login did not return a session cookie' unless cookie.is_a?(String) && !cookie.empty?
+
+      @email = email
+      @cookie = cookie
     end
 
     # Returns an array of available mailing lists based on +topic+ and
@@ -104,11 +81,63 @@ module Mail
     #
     def lists(topic='', sub_topic='')
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'lists', [topic, sub_topic])
+      authenticate_and_run('lists', [topic, sub_topic])
     end
 
+    private
+
+    # Sympa authenticates RPC calls through its session wrapper. The final
+    # argument must be a SOAP-encoded array, including when it has one item.
+    def authenticate_and_run(service, parameters)
+      soap_call(:authenticateAndRun, {
+        email: @email,
+        cookie: @cookie,
+        service: service
+      }.merge(soap_parameters(parameters)))
+    end
+
+    def soap_parameters(parameters)
+      {
+        parameters: { item: parameters.map { |value| value == true ? '1' : value == false ? '0' : value.to_s } },
+        :attributes! => {
+          parameters: {
+            'xsi:type' => 'soapenc:Array',
+            'soapenc:arrayType' => "xsd:string[#{parameters.length}]"
+          }
+        }
+      }
+    end
+
+    def soap_call(operation, message)
+      response = @client.call(operation, soap_action: "#{@namespace}##{operation}", message: message)
+      # Sympa names results by operation (result, listInfo, etc.). Preserve
+      # false and empty values rather than falling back to the response XML.
+      envelope = response.body.values.first
+      result = envelope.reject { |key, _| key.to_s.start_with?('@') }.values.first
+      decode_result(result)
+    rescue Savon::SOAPFault => error
+      detail = error.to_hash.dig(:fault, :detail)
+      detail = nil unless detail.is_a?(String) && !detail.empty?
+      raise Error, ["SOAP Fault: #{error.message}", detail].compact.join(': ')
+    rescue StandardError => error
+      raise Error, "SOAP request failed: #{error.message}"
+    end
+
+    def decode_result(result)
+      return result unless result.is_a?(Hash)
+
+      values = result.reject { |key, _| key.to_s.start_with?('@') }
+      if result.any? { |key, value| key.to_s.start_with?('@') && value.to_s.end_with?(':Array') }
+        values.values.flat_map { |value| value.is_a?(Array) ? value : [value] }.map { |value| decode_result(value) }
+      else
+        values.transform_values { |value| decode_result(value) }
+      end
+    end
+
+    public
+
     # Returns an array of available mailing lists in complex object format,
-    # i.e. these are SOAP::Mapping objects that you can call methods on.
+    # i.e. these are hash objects that you can access like methods.
     #
     # Example:
     #
@@ -116,20 +145,20 @@ module Mail
     #  sympa.login(email, password)
     #
     #  sympa.complex_lists.each{ |list|
-    #    puts list.subject
-    #    puts list.homepage
+    #    puts list[:subject] || list['subject']
+    #    puts list[:homepage] || list['homepage']
     #  }
     #
     def complex_lists(topic='', sub_topic='')
       raise Error, 'must login first' unless @cookie
       args = [topic, sub_topic]
-      @soap.authenticateAndRun(@email, @cookie, 'complexLists', args)
+      authenticate_and_run('complexLists', args)
     end
 
     alias complexLists complex_lists
 
     # Returns a description about the given +list_name+. This is a
-    # SOAP::Mapping object.
+    # hash object.
     #
     # Example:
     #
@@ -138,13 +167,14 @@ module Mail
     #
     #  info = sympa.info(list)
     #
-    #  puts info.subject
-    #  puts info.homepage
-    #  puts info.isOwner
+    #  puts info[:subject] || info['subject']
+    #  puts info[:homepage] || info['homepage']
+    #  puts info[:isOwner] || info['isOwner']
     #
     def info(list_name)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'info', [list_name])
+      result = authenticate_and_run('info', [list_name])
+      result.is_a?(Array) ? result.first : result
     end
 
     # Returns an array of members that belong to the given +list_name+.
@@ -158,7 +188,7 @@ module Mail
     #
     def review(list_name)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'review', [list_name])
+      authenticate_and_run('review', [list_name])
     end
 
     # Returns an array of lists that the +user+ is subscribed to. The +user+
@@ -180,15 +210,15 @@ module Mail
     #
     def which(user, app_name, app_passwd)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'which', [''])
+      authenticate_remote_app_and_run(app_name, app_passwd, user, 'which', [''])
     end
 
-    # Same as the Sympa#which method, but returns an array of SOAP::Mapping
-    # objects that you can call methods on.
+    # Same as the Sympa#which method, but returns an array of hash
+    # objects that you can access like methods.
     #
     def complex_which(user, app_name, app_passwd)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateRemoteAppAndRun(app_name, app_passwd, user, 'complexWhich', [''])
+      authenticate_remote_app_and_run(app_name, app_passwd, user, 'complexWhich', [''])
     end
 
     alias complexWhich complex_which
@@ -201,32 +231,28 @@ module Mail
       raise Error, 'must login first' unless @cookie
 
       unless ['editor', 'owner'].include?(function)
-        raise Error, 'invalid function name "#{editor}"'
+        raise Error, "invalid function name \"#{function}\""
       end
 
-      @soap.authenticateAndRun(@email, @cookie, 'amI', [list_name, function, user])
+      authenticate_and_run('amI', [list_name, function, user])
     end
 
     alias amI am_i?
 
     # Adds the given +email+ to +list_name+ using +name+ (gecos). If +quiet+
     # is set to true (the default) then no email notification is sent.
-    #--
-    # TODO: Determine why this method does not return a boolean.
     #
     def add(email, list_name, name, quiet=true)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'add', [list_name, email, name, quiet])
+      authenticate_and_run('add', [list_name, email, name, quiet])
     end
 
     # Deletes the given +email+ from +list_name+. If +quiet+ is set to true
     # (the default) then no email notification is sent.
-    #--
-    # TODO: Determine why this method does not return a boolean.
     #
     def del(email, list_name, quiet=true)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'del', [list_name, email, quiet])
+      authenticate_and_run('del', [list_name, email, quiet])
     end
 
     # Subscribes the currently logged in user to +list_name+. By default the
@@ -234,14 +260,14 @@ module Mail
     #
     def subscribe(list_name, name = @email)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'subscribe', [list_name, name])
+      authenticate_and_run('subscribe', [list_name, name])
     end
 
     # Removes the currently logged in user from +list_name+.
     #
     def signoff(list_name)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'signoff', [list_name, @email])
+      authenticate_and_run('signoff', [list_name, @email])
     end
 
     alias delete del
@@ -249,10 +275,11 @@ module Mail
     alias url endpoint
 
     # Creates list +list_name+ with subject +subject+.  Returns boolean.
+    # The server may require an explicit +topics+ value from its topics.conf.
     #
     def create_list(list_name, subject, template='discussion_list', description=' ', topics=' ')
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'createList', [list_name, subject, template, description, topics])
+      authenticate_and_run('createList', [list_name, subject, template, description, topics])
     end
 
     alias createList create_list
@@ -261,14 +288,19 @@ module Mail
     #
     def close_list(list_name)
       raise Error, 'must login first' unless @cookie
-      @soap.authenticateAndRun(@email, @cookie, 'closeList', [list_name])
+      authenticate_and_run('closeList', [list_name])
     end
 
     alias closeList close_list
 
     # Run command in trusted context.
     def authenticate_remote_app_and_run(app_name, app_password, variables, service, parameters)
-      @soap.authenticateRemoteAppAndRun( app_name, app_password, variables, service, parameters )
+      soap_call(:authenticateRemoteAppAndRun, {
+        app_name: app_name,
+        app_password: app_password,
+        variables: variables,
+        service: service
+      }.merge(soap_parameters(parameters)))
     end
 
     alias authenticateRemoteAppAndRun authenticate_remote_app_and_run

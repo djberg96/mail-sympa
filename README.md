@@ -2,11 +2,24 @@
 The mail-sympa library is Ruby interface for the Sympa mailing list management software.
 
 ## Prerequisites
-* soap4r 1.5.8 or later
-* xmlparser
+* Savon 2.x
+* Nokogiri 1.x
 
 ## Installation
 `gem install mail-sympa`
+
+## Testing in Docker
+
+With Ruby, Rake, and Docker running on your host:
+
+```sh
+rake docker:build
+rake docker:spec
+```
+
+The image contains Ruby, real Sympa, Apache, SQLite, and all test dependencies.
+Each run seeds fresh users and lists, tests the real SOAP service, and removes
+the container. See [DOCKER_README.md](DOCKER_README.md) for details and runtime overrides.
 
 ## Synopsis
 ```ruby
@@ -24,16 +37,16 @@ end
 mail.add('foo@bar.com', 'some_list', 'Mr. Foo', true)
 ```
 
-## Known Issues
-The `Sympa#add` and `Sympa#del` methods return an empty string instead of
-a boolean. I am unsure why.
+## Creating Lists
+
+Supply a topic configured in the server's `topics.conf` when creating a list:
+
+```ruby
+mail.create_list('some_list', 'Example list', 'discussion_list', 'Description', 'computing')
+```
 
 ## Acknowledgements
 Thanks go to Blair Christensen for some nice patches for this library.
-
-## TODO
-The test suite should be reworked to use rspec and a mock sympa server instead
-of relying on an actual server to test against.
 
 ## License
 Artistic-2.0

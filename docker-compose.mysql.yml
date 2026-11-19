@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sympa_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: sympa
+      MYSQL_USER: sympa
+      MYSQL_PASSWORD: sympa123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - sympa_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sympa:
+    image: camptocamp/sympa:latest
+    container_name: sympa_server
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SYMPA_DB_TYPE: mysql
+      SYMPA_DB_NAME: sympa
+      SYMPA_DB_HOST: mysql
+      SYMPA_DB_USER: sympa
+      SYMPA_DB_PASSWORD: sympa123
+      SYMPA_DOMAIN: localhost
+      SYMPA_LISTMASTER: postmaster@localhost
+    ports:
+      - "8080:80"
+    volumes:
+      - sympa_data:/var/lib/sympa
+    networks:
+      - sympa_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  sympa_data:
+
+networks:
+  sympa_network:
+    driver: bridge
