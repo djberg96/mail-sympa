@@ -1,3 +1,8 @@
+## Unreleased
+* Added docker:build and docker:spec tasks for real Sympa SOAP integration tests.
+* Fixed Savon authentication wrappers, SOAPAction headers, encoded parameters,
+  native SOAP result decoding, and login session handling.
+
 ## 1.2.0 - 12-Mar-2016
 * No longer supports Ruby 1.8, and made corresponding changes to code.
 * Updated the Rakefile tasks. Now assumes Rubygems 2.x.

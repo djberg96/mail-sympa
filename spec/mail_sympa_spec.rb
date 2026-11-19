@@ -1,11 +1,13 @@
 require 'spec_helper'
 require 'mail/sympa'
+require 'securerandom'
 
 RSpec.describe Mail::Sympa do
-  let(:endpoint) { 'http://localhost:8080/sympasoap' }
+  let(:endpoint) { ENV.fetch('SYMPA_ENDPOINT', 'http://localhost:8080/sympasoap') }
   let(:sympa) { Mail::Sympa.new(endpoint) }
-  let(:test_user) { 'postmaster@localhost' }
-  let(:test_password) { 'test' }
+  let(:test_user) { ENV.fetch('SYMPA_TEST_USER', 'postmaster@sympa.test') }
+  let(:test_password) { ENV.fetch('SYMPA_TEST_PASSWORD', 'test') }
+  let(:member_email) { "member-#{SecureRandom.hex(4)}@example.test" }
   let(:test_list) { 'testlist' }
   let(:empty_list) { 'partners' }
 
@@ -14,19 +16,10 @@ RSpec.describe Mail::Sympa do
     sympa.login(test_user, test_password)
   end
 
-  # Helper method to create a list if it doesn't exist
+  # Fail clearly if provisioning did not create a required fixture.
   def ensure_list_exists(list_name)
     login_sympa
-    begin
-      sympa.info(list_name)
-    rescue => e
-      # List doesn't exist, try to create it
-      begin
-        sympa.create_list(list_name, "Test list #{list_name}")
-      rescue => create_error
-        fail "List #{list_name} does not exist and could not be created: #{create_error}"
-      end
-    end
+    expect(sympa.info(list_name)).to include(list_address: "#{list_name}@sympa.test")
   end
 
   describe 'class constants and attributes' do
@@ -92,9 +85,8 @@ RSpec.describe Mail::Sympa do
       expect(sympa.cookie).to be_a(String)
     end
 
-    it 'raises an error with invalid credentials', :skip_mock do
-      # Skip this test when using mock server as it accepts any credentials
-      expect { sympa.login('bogus', 'bogus') }.to raise_error(Mail::Sympa::Error)
+    it 'raises an error with invalid credentials' do
+      expect { sympa.login('bogus', 'bogus') }.to raise_error(Mail::Sympa::Error, /Authentication failed/)
     end
 
     it 'requires exactly two arguments' do
@@ -105,6 +97,23 @@ RSpec.describe Mail::Sympa do
     it 'returns a session cookie string' do
       result = login_sympa
       expect(result).to be_a(String)
+    end
+
+    it 'clears the previous session after a failed login' do
+      login_sympa
+      expect { sympa.login(test_user, 'wrong-password') }.to raise_error(Mail::Sympa::Error)
+      expect(sympa.cookie).to be_nil
+      expect { sympa.lists }.to raise_error(Mail::Sympa::Error, 'must login first')
+    end
+
+    it 'uses the canonical email for subsequent authenticated calls' do
+      sympa.login(test_user.upcase, test_password)
+      expect(sympa.review(test_list)).to include('reader@example.test')
+    end
+
+    it 'wraps transport failures in Mail::Sympa::Error' do
+      unavailable = Mail::Sympa.new('http://127.0.0.1:1/sympasoap')
+      expect { unavailable.login(test_user, test_password) }.to raise_error(Mail::Sympa::Error, /SOAP request failed/)
     end
   end
 
@@ -118,7 +127,7 @@ RSpec.describe Mail::Sympa do
     it 'returns an array of lists' do
       lists = sympa.lists
       expect(lists).to be_a(Array)
-      expect(lists.first).to be_a(String) if lists.any?
+      expect(lists).to include(a_string_including('listAddress=testlist@sympa.test'))
     end
 
     it 'accepts a topic argument' do
@@ -130,7 +139,7 @@ RSpec.describe Mail::Sympa do
     it 'accepts topic and subtopic arguments' do
       ensure_list_exists(test_list)
       result = sympa.lists(test_list, test_list)
-      expect(result).to be_a(Array)
+      expect(result).to include(a_string_including('listAddress=testlist@sympa.test'))
     end
 
     it 'returns empty array for non-existent topic' do
@@ -157,7 +166,7 @@ RSpec.describe Mail::Sympa do
     it 'returns an array of complex objects' do
       lists = sympa.complex_lists
       expect(lists).to be_a(Array)
-      expect(lists.first).to be_a(Hash) if lists.any?
+      expect(lists).to include(include(list_address: 'testlist@sympa.test', subject: 'Test list testlist'))
     end
 
     it 'accepts topic and subtopic arguments' do
@@ -188,7 +197,7 @@ RSpec.describe Mail::Sympa do
     it 'returns information about a list' do
       ensure_list_exists(test_list)
       info = sympa.info(test_list)
-      expect(info).to be_a(Hash)
+      expect(info).to include(list_address: 'testlist@sympa.test', subject: 'Test list testlist', is_owner: true)
     end
 
     it 'requires login' do
@@ -208,7 +217,7 @@ RSpec.describe Mail::Sympa do
       ensure_list_exists(test_list)
       subscribers = sympa.review(test_list)
       expect(subscribers).to be_a(Array)
-      expect(subscribers.first).to be_a(String) if subscribers.any?
+      expect(subscribers).to include('reader@example.test')
     end
 
     it 'returns no_subscribers for empty list' do
@@ -217,8 +226,7 @@ RSpec.describe Mail::Sympa do
       expect(subscribers).to eq(['no_subscribers'])
     end
 
-    it 'raises error for non-existent list', :skip_mock do
-      # Skip this test when using mock server
+    it 'raises error for non-existent list' do
       expect { sympa.review('bogus_list_xyz_123') }.to raise_error(Mail::Sympa::Error)
     end
 
@@ -236,6 +244,19 @@ RSpec.describe Mail::Sympa do
     it 'requires login' do
       expect { sympa.which('user', 'app', 'pass') }.to raise_error(Mail::Sympa::Error, 'must login first')
     end
+
+    it 'finds subscriptions through a trusted application' do
+      login_sympa
+      result = sympa.which('USER_EMAIL=reader@example.test', 'mail-sympa-tests', 'test-app-password')
+      expect(result).to include(a_string_including('testlist@sympa.test'))
+    end
+
+    it 'rejects an incorrect trusted application password' do
+      login_sympa
+      expect {
+        sympa.which('USER_EMAIL=reader@example.test', 'mail-sympa-tests', 'wrong-password')
+      }.to raise_error(Mail::Sympa::Error, /Authentication failed/)
+    end
   end
 
   describe '#complex_which' do
@@ -249,6 +270,12 @@ RSpec.describe Mail::Sympa do
 
     it 'requires login' do
       expect { sympa.complex_which('user', 'app', 'pass') }.to raise_error(Mail::Sympa::Error, 'must login first')
+    end
+
+    it 'returns structured subscriptions through a trusted application' do
+      login_sympa
+      result = sympa.complex_which('USER_EMAIL=reader@example.test', 'mail-sympa-tests', 'test-app-password')
+      expect(result).to include(include(list_address: 'testlist@sympa.test'))
     end
   end
 
@@ -272,7 +299,11 @@ RSpec.describe Mail::Sympa do
     it 'accepts function parameter' do
       ensure_list_exists(test_list)
       result = sympa.am_i?(test_user, test_list, 'owner')
-      expect([true, false]).to include(result)
+      expect(result).to be(true)
+    end
+
+    it 'returns false for a user who is not an owner' do
+      expect(sympa.am_i?('reader@example.test', test_list, 'owner')).to be(false)
     end
 
     it 'validates function parameter' do
@@ -292,10 +323,10 @@ RSpec.describe Mail::Sympa do
       expect(sympa).to respond_to(:add)
     end
 
-    it 'returns a boolean result' do
+    it 'adds a subscriber and returns true' do
       ensure_list_exists(test_list)
-      result = sympa.add('test@example.com', test_list, 'Test User')
-      expect([true, false]).to include(result)
+      expect(sympa.add(member_email, test_list, 'Test User')).to be(true)
+      expect(sympa.review(test_list)).to include(member_email)
     end
 
     it 'requires at least three arguments' do
@@ -321,10 +352,11 @@ RSpec.describe Mail::Sympa do
       expect(sympa).to respond_to(:delete)
     end
 
-    it 'returns a boolean result' do
+    it 'removes a subscriber and returns true' do
       ensure_list_exists(test_list)
-      result = sympa.del('test@example.com', test_list)
-      expect([true, false]).to include(result)
+      sympa.add(member_email, test_list, 'Test User')
+      expect(sympa.del(member_email, test_list)).to be(true)
+      expect(sympa.review(test_list)).not_to include(member_email)
     end
 
     it 'requires at least two arguments' do
@@ -345,10 +377,11 @@ RSpec.describe Mail::Sympa do
       expect(sympa).to respond_to(:subscribe)
     end
 
-    it 'returns a boolean result' do
+    it 'subscribes the logged-in user' do
       ensure_list_exists(test_list)
-      result = sympa.subscribe(test_list, 'Test User')
-      expect([true, false]).to include(result)
+      sympa.signoff(test_list) if sympa.review(test_list).include?(test_user)
+      expect(sympa.subscribe(test_list, 'Test User')).to be(true)
+      expect(sympa.review(test_list)).to include(test_user)
     end
 
     it 'requires at least one argument' do
@@ -372,10 +405,11 @@ RSpec.describe Mail::Sympa do
       expect(sympa).to respond_to(:unsubscribe)
     end
 
-    it 'returns a boolean result' do
+    it 'unsubscribes the logged-in user' do
       ensure_list_exists(test_list)
-      result = sympa.signoff(test_list)
-      expect([true, false]).to include(result)
+      sympa.subscribe(test_list, 'Test User') unless sympa.review(test_list).include?(test_user)
+      expect(sympa.signoff(test_list)).to be(true)
+      expect(sympa.review(test_list)).not_to include(test_user)
     end
 
     it 'requires exactly one argument' do
@@ -400,15 +434,18 @@ RSpec.describe Mail::Sympa do
       expect(sympa).to respond_to(:createList)
     end
 
-    it 'returns a boolean result' do
-      list_name = "test-#{Time.now.to_i}"
-      result = sympa.create_list(list_name, 'Test List')
-      expect([true, false]).to include(result)
+    it 'creates a list with the requested subject' do
+      list_name = "test-#{SecureRandom.hex(6)}"
+      subject = 'Cømmunity & <Lists>'
+      result = sympa.create_list(list_name, subject, 'discussion_list', 'Integration test', 'testlist/testlist')
+      expect(result).to be(true)
+      expect(sympa.info(list_name)).to include(subject: subject, list_address: "#{list_name}@sympa.test")
+      expect(sympa.lists('testlist', 'testlist')).to include(a_string_including("listAddress=#{list_name}@sympa.test"))
     end
 
     it 'requires at least two arguments' do
       expect { sympa.create_list }.to raise_error(ArgumentError)
-      expect { sympa.create_list("test-#{Time.now.to_i}") }.to raise_error(ArgumentError)
+      expect { sympa.create_list("test-#{SecureRandom.hex(6)}") }.to raise_error(ArgumentError)
     end
 
     it 'requires login' do
@@ -428,11 +465,11 @@ RSpec.describe Mail::Sympa do
       expect(sympa).to respond_to(:closeList)
     end
 
-    it 'returns a boolean result' do
-      list_name = "test-#{Time.now.to_i}"
-      sympa.create_list(list_name, 'Test List')
-      result = sympa.close_list(list_name)
-      expect([true, false]).to include(result)
+    it 'closes a list and removes it from the directory' do
+      list_name = "test-#{SecureRandom.hex(6)}"
+      sympa.create_list(list_name, 'Test List', 'discussion_list', 'Integration test', 'testlist/testlist')
+      expect(sympa.close_list(list_name)).to be(true)
+      expect(sympa.lists).not_to include(a_string_including("listAddress=#{list_name}@sympa.test"))
     end
 
     it 'requires exactly one argument' do

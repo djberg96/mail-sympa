@@ -1,136 +1,85 @@
-# Sympa Test Environment for mail-sympa Ruby Library
+# Real Sympa integration tests
 
-This directory contains Docker configuration to set up a Sympa mailing list server for testing the mail-sympa Ruby library.
+Run from the repository root:
 
-## Quick Start
-
-1. **Start the test environment:**
-   ```bash
-   cd docker
-   ./setup-test-env.sh
-   ```
-
-2. **Create test configuration:**
-   ```bash
-   ./create-test-config.sh
-   ```
-
-3. **Access the web interface:**
-   Open http://localhost:8080/sympa in your browser
-
-4. **Set up admin user:**
-   - Go to the web interface
-   - Create a user `postmaster@localhost` with password `admin_password`
-   - Grant this user listmaster privileges
-
-5. **Run tests:**
-   ```bash
-   bundle exec rake test
-   ```
-
-## Configuration Details
-
-### Services
-
-- **Sympa Server**: Runs on port 8080 (HTTP) and 8025 (SMTP)
-- **PostgreSQL**: Runs on port 5432
-- **SOAP Endpoint**: Available at http://localhost:8080/sympasoap
-
-### Test Configuration
-
-The test suite expects a DBI configuration file (`~/.dbirc`) with this format:
-
-```
-[test_sympa]
-user = postmaster@localhost
-password = admin_password
-driver = http://localhost:8080/sympasoap
+```sh
+rake docker:build
+rake docker:spec
 ```
 
-### Docker Files
+The host needs Ruby, Rake, and a running Docker daemon. All application and test
+dependencies are installed inside the image; no host `bundle install` is needed.
 
-- `docker-compose.simple.yml`: Main docker-compose file using official Sympa image
-- `docker-compose.yml`: Alternative setup with custom Debian-based image
-- `docker/`: Configuration files and custom Docker setup
+`docker:build` builds `mail-sympa-test` with Ruby 3.3 and Debian Bookworm's Sympa
+6.2.70 package, Apache/FastCGI, and SQLite. `docker:spec` first builds the image
+(reusing cached dependency layers), then runs a disposable container with:
 
-## Manual Setup
+1. A fresh SQLite database and Sympa list state.
+2. Two password-authenticated users, two lists, a subscriber, and a trusted SOAP application.
+3. The actual Sympa SOAP service and WWSympa WSDL endpoint served by Apache.
+4. The complete RSpec suite, with no mock exclusions.
 
-If you prefer to set up manually:
+The specs verify valid and invalid authentication, sessions, list discovery,
+structured SOAP results, permissions, trusted-app calls, subscriber changes,
+and list creation and closure. Assertions check resulting server state as well
+as return values.
 
-1. **Start services:**
-   ```bash
-   docker compose -f docker-compose.simple.yml up -d
-   ```
+The runner waits up to 30 seconds for HTTP readiness, returns a failing status
+on provisioning, startup, or spec failures, and prints the HTTP server log when
+startup or tests fail, along with Sympa's syslog. Docker removes the container afterward, including its
+database, lists, and queued notifications.
 
-2. **Check status:**
-   ```bash
-   docker compose -f docker-compose.simple.yml ps
-   ```
+The source is copied at build time, so each `docker:spec` run includes current
+edits without writing gems or lockfiles into the checkout. No host ports,
+persistent volumes, external database, web setup, or `~/.dbirc` are needed.
+The test container runs with networking disabled; localhost remains available.
+Mail delivery daemons are not started.
 
-3. **View logs:**
-   ```bash
-   docker compose -f docker-compose.simple.yml logs -f sympa
-   ```
+## Runtime and image overrides
 
-4. **Stop services:**
-   ```bash
-   docker compose -f docker-compose.simple.yml down
-   ```
+Docker is preferred; Podman is used if Docker is not installed. To select one
+explicitly:
 
-## Troubleshooting
+```sh
+CONTAINER_RUNTIME=podman rake docker:spec
+```
 
-### SOAP Endpoint Not Available
+The selected runtime must already be running. Set `MAIL_SYMPA_IMAGE` to change
+the tag used for both building and running:
 
-If the SOAP endpoint is not responding:
+```sh
+MAIL_SYMPA_IMAGE=mail-sympa-dev rake docker:build docker:spec
+```
 
-1. Check service status:
-   ```bash
-   docker compose -f docker-compose.simple.yml ps
-   ```
+After building, run selected examples or pass RSpec options:
 
-2. Check Sympa logs:
-   ```bash
-   docker compose -f docker-compose.simple.yml logs sympa
-   ```
+```sh
+docker run --rm --network none mail-sympa-test spec/mail_sympa_spec.rb --seed 1234
+```
 
-3. Test SOAP endpoint:
-   ```bash
-   curl http://localhost:8080/sympasoap?wsdl
-   ```
+## Fixtures and configuration
 
-### Database Connection Issues
+The test domain is `sympa.test`; Apache listens on container-local port 8080.
+The listmaster is `postmaster@sympa.test` and the second user is
+`reader@example.test`, both with password `test`. The `testlist` list contains
+the reader; `partners` starts empty. Both lists use topic `testlist/testlist`.
+The trusted application is `mail-sympa-tests`, with password `test-app-password`
+and permission to proxy `USER_EMAIL`. These credentials belong only to the
+throwaway test environment.
 
-If there are database connectivity problems:
+The relevant setup is in `docker/test-sympa.conf`, `docker/test-apache.conf`,
+`docker/test-topics.conf`, and `docker/seed_sympa.pl`. SQLite is a supported Sympa
+backend, and keeps this SOAP integration environment self-contained. This suite
+does not test SMTP delivery or a production deployment's database configuration.
 
-1. Check PostgreSQL logs:
-   ```bash
-   docker compose -f docker-compose.simple.yml logs postgres
-   ```
+To run specs on the host against an equivalently provisioned real server, use
+`bundle install` followed by `bundle exec rake spec`. Optional variables are
+`SYMPA_ENDPOINT`, `SYMPA_WSDL_URL`, `SYMPA_TEST_USER`, and `SYMPA_TEST_PASSWORD`.
+The server must contain the fixture lists, topic, reader, and trusted application
+above: these tests change server state.
 
-2. Test database connection:
-   ```bash
-   docker compose -f docker-compose.simple.yml exec postgres psql -U sympa -d sympa -c "\dt"
-   ```
+Server behavior follows the [Sympa SOAP/HTTP API](https://www.sympa.community/manual/customize/soap-api.html).
+See also Sympa's [SQLite setup instructions](https://www.sympa.community/manual/install/setup-database-sqlite.html).
 
-### Test Failures
-
-Common issues with tests:
-
-1. **Authentication errors**: Ensure the postmaster user exists and has correct privileges
-2. **SOAP endpoint not found**: Wait for services to fully start (can take 1-2 minutes)
-3. **Database errors**: Check that PostgreSQL is running and accessible
-
-## Environment Variables
-
-You can customize the setup by modifying environment variables in the docker-compose file:
-
-- `SYMPA_DOMAIN`: Domain name (default: localhost)
-- `SYMPA_LISTMASTER`: Listmaster email (default: postmaster@localhost)
-- `POSTGRES_PASSWORD`: Database password
-
-## Notes
-
-- The setup uses PostgreSQL as the database backend
-- SOAP interface is enabled for the Ruby library integration
-- The environment is designed for testing only, not production use
-- Default credentials should be changed for any non-testing use
+The older Compose files, mock server, and setup scripts are legacy experiments;
+neither rake task uses them.

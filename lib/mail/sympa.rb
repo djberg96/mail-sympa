@@ -1,6 +1,4 @@
 require 'savon'
-require 'json'
-require 'ostruct'
 
 
 # The Mail module serves as a namespace only.
@@ -40,12 +38,12 @@ module Mail
         element_form_default: :qualified,
         env_namespace: :soap,
         namespace_identifier: :sym,
+        namespaces: { 'xmlns:soapenc' => 'http://schemas.xmlsoap.org/soap/encoding/' },
         log: false,  # Set to true for debugging
         pretty_print_xml: false
       )
 
       @email    = nil
-      @password = nil
       @cookie   = nil
     end
 
@@ -58,26 +56,13 @@ module Mail
     #  sympa.login(email, password)
     #
     def login(email, password)
-      @email    = email
-      @password = password
+      @cookie = nil
+      email = email.to_s.strip.downcase
+      cookie = soap_call(:login, email: email, password: password)
+      raise Error, 'Login did not return a session cookie' unless cookie.is_a?(String) && !cookie.empty?
 
-      begin
-        response = @client.call(:login, message: {
-          email: email,
-          password: password
-        })
-
-        # Extract the cookie from the response
-        @cookie = response.body.dig(:login_response, :return) ||
-                  response.body[:return] ||
-                  response.to_s
-
-        @cookie
-      rescue Savon::SOAPFault => e
-        raise Error, "SOAP Fault: #{e.message}"
-      rescue => e
-        raise Error, "Login failed: #{e.message}"
-      end
+      @email = email
+      @cookie = cookie
     end
 
     # Returns an array of available mailing lists based on +topic+ and
@@ -101,84 +86,51 @@ module Mail
 
     private
 
-    # Helper method to make authenticated calls using Savon
+    # Sympa authenticates RPC calls through its session wrapper. The final
+    # argument must be a SOAP-encoded array, including when it has one item.
     def authenticate_and_run(service, parameters)
-      begin
-        # Call the service directly since the mock server expects this format
-        response = @client.call(service.to_sym, message: {
-          email: @email,
-          cookie: @cookie,
-          service: service,
-          parameters: parameters
-        })
+      soap_call(:authenticateAndRun, {
+        email: @email,
+        cookie: @cookie,
+        service: service
+      }.merge(soap_parameters(parameters)))
+    end
 
-        # Extract the result from the response
-        # Try different response key formats
-        response_key = "#{service}_response".to_sym
-        camel_case_key = "#{service.to_s.gsub(/([A-Z])/, '_\1').downcase}_response".to_sym
+    def soap_parameters(parameters)
+      {
+        parameters: { item: parameters.map { |value| value == true ? '1' : value == false ? '0' : value.to_s } },
+        :attributes! => {
+          parameters: {
+            'xsi:type' => 'soapenc:Array',
+            'soapenc:arrayType' => "xsd:string[#{parameters.length}]"
+          }
+        }
+      }
+    end
 
-        result = response.body.dig(response_key, :return) ||
-                 response.body.dig(camel_case_key, :return) ||
-                 response.body.dig("#{service.downcase}_response".to_sym, :return) ||
-                 response.body[:return] ||
-                 response.body
+    def soap_call(operation, message)
+      response = @client.call(operation, soap_action: "#{@namespace}##{operation}", message: message)
+      # Sympa names results by operation (result, listInfo, etc.). Preserve
+      # false and empty values rather than falling back to the response XML.
+      envelope = response.body.values.first
+      result = envelope.reject { |key, _| key.to_s.start_with?('@') }.values.first
+      decode_result(result)
+    rescue Savon::SOAPFault => error
+      detail = error.to_hash.dig(:fault, :detail)
+      detail = nil unless detail.is_a?(String) && !detail.empty?
+      raise Error, ["SOAP Fault: #{error.message}", detail].compact.join(': ')
+    rescue StandardError => error
+      raise Error, "SOAP request failed: #{error.message}"
+    end
 
-        # Handle different response formats
-        case result
-        when Hash
-          if result.key?(:item)
-            # Array response wrapped in items
-            Array(result[:item])
-          else
-            result
-          end
-        when Array
-          result
-        when String, Nori::StringWithAttributes
-          # Convert to string in case it's a Nori::StringWithAttributes
-          result_str = result.to_s
-          # Try to parse string responses from mock server
-          if result_str.start_with?('[') && result_str.end_with?(']')
-            begin
-              # Try to parse as JSON first
-              parsed = JSON.parse(result_str)
-              if parsed.is_a?(Array)
-                # Convert to Hash objects to match expected behavior
-                parsed.map { |item|
-                  if item.is_a?(Hash)
-                    item
-                  else
-                    item
-                  end
-                }
-              else
-                parsed
-              end
-            rescue JSON::ParserError
-              # Fallback to simple parsing for non-JSON arrays
-              # Remove brackets and quotes, split by comma
-              items = result_str[1..-2].split(',').map { |item|
-                item.strip.gsub(/^['"]|['"]$/, '')
-              }
-              items.reject(&:empty?)
-            end
-          elsif result_str.start_with?('{') && result_str.end_with?('}')
-            # Try to parse as JSON hash
-            begin
-              JSON.parse(result_str)
-            rescue JSON::ParserError
-              result_str
-            end
-          else
-            result_str
-          end
-        else
-          result
-        end
-      rescue Savon::SOAPFault => e
-        raise Error, "SOAP Fault: #{e.message}"
-      rescue => e
-        raise Error, "Operation failed: #{e.message}"
+    def decode_result(result)
+      return result unless result.is_a?(Hash)
+
+      values = result.reject { |key, _| key.to_s.start_with?('@') }
+      if result.any? { |key, value| key.to_s.start_with?('@') && value.to_s.end_with?(':Array') }
+        values.values.flat_map { |value| value.is_a?(Array) ? value : [value] }.map { |value| decode_result(value) }
+      else
+        values.transform_values { |value| decode_result(value) }
       end
     end
 
@@ -221,7 +173,8 @@ module Mail
     #
     def info(list_name)
       raise Error, 'must login first' unless @cookie
-      authenticate_and_run('info', [list_name])
+      result = authenticate_and_run('info', [list_name])
+      result.is_a?(Array) ? result.first : result
     end
 
     # Returns an array of members that belong to the given +list_name+.
@@ -278,7 +231,7 @@ module Mail
       raise Error, 'must login first' unless @cookie
 
       unless ['editor', 'owner'].include?(function)
-        raise Error, 'invalid function name "#{function}"'
+        raise Error, "invalid function name \"#{function}\""
       end
 
       authenticate_and_run('amI', [list_name, function, user])
@@ -288,8 +241,6 @@ module Mail
 
     # Adds the given +email+ to +list_name+ using +name+ (gecos). If +quiet+
     # is set to true (the default) then no email notification is sent.
-    #--
-    # TODO: Determine why this method does not return a boolean.
     #
     def add(email, list_name, name, quiet=true)
       raise Error, 'must login first' unless @cookie
@@ -298,8 +249,6 @@ module Mail
 
     # Deletes the given +email+ from +list_name+. If +quiet+ is set to true
     # (the default) then no email notification is sent.
-    #--
-    # TODO: Determine why this method does not return a boolean.
     #
     def del(email, list_name, quiet=true)
       raise Error, 'must login first' unless @cookie
@@ -326,6 +275,7 @@ module Mail
     alias url endpoint
 
     # Creates list +list_name+ with subject +subject+.  Returns boolean.
+    # The server may require an explicit +topics+ value from its topics.conf.
     #
     def create_list(list_name, subject, template='discussion_list', description=' ', topics=' ')
       raise Error, 'must login first' unless @cookie
@@ -345,38 +295,12 @@ module Mail
 
     # Run command in trusted context.
     def authenticate_remote_app_and_run(app_name, app_password, variables, service, parameters)
-      begin
-        response = @client.call(:authenticate_remote_app_and_run, message: {
-          app_name: app_name,
-          app_password: app_password,
-          variables: variables,
-          service: service,
-          parameters: parameters
-        })
-
-        # Extract the result from the response
-        result = response.body.dig(:authenticate_remote_app_and_run_response, :return) ||
-                 response.body[:return] ||
-                 response.body
-
-        # Handle different response formats
-        case result
-        when Hash
-          if result.key?(:item)
-            Array(result[:item])
-          else
-            result
-          end
-        when Array
-          result
-        else
-          result
-        end
-      rescue Savon::SOAPFault => e
-        raise Error, "SOAP Fault: #{e.message}"
-      rescue => e
-        raise Error, "Operation failed: #{e.message}"
-      end
+      soap_call(:authenticateRemoteAppAndRun, {
+        app_name: app_name,
+        app_password: app_password,
+        variables: variables,
+        service: service
+      }.merge(soap_parameters(parameters)))
     end
 
     alias authenticateRemoteAppAndRun authenticate_remote_app_and_run

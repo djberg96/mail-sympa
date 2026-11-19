@@ -14,9 +14,6 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
 
-  # Filter out tests that don't work with mock server
-  config.filter_run_excluding :skip_mock
-
   # Custom matcher for boolean values
   RSpec::Matchers.define :be_boolean do
     match do |actual|
@@ -32,38 +29,14 @@ RSpec.configure do |config|
     end
   end
 
-  # Print helpful information before running tests
-  config.before(:suite) do
-    puts "\n" + "="*60
-    puts "Running Mail::Sympa RSpec test suite"
-    puts "Mock Sympa server should be running on http://localhost:8080/sympasoap"
-    puts "="*60 + "\n"
-  end
-
-  # Check if mock server is running before tests
   config.before(:suite) do
     require 'net/http'
-    require 'uri'
-
-    begin
-      uri = URI('http://localhost:8080/sympasoap')
-      response = Net::HTTP.get_response(uri)
-      if response.code == '200'
-        puts "✓ Mock Sympa server is running and accessible"
-      else
-        puts "⚠ Mock Sympa server responded with code #{response.code}"
-      end
-    rescue => e
-      puts "✗ Could not connect to mock Sympa server: #{e.message}"
-      puts "Please ensure the mock server is running:"
-      puts "  cd docker && ./setup-test-env.sh mock"
-      exit 1
+    uri = URI(ENV.fetch('SYMPA_WSDL_URL', 'http://localhost:8080/sympa/wsdl'))
+    response = Net::HTTP.start(uri.host, uri.port, open_timeout: 3, read_timeout: 5) do |http|
+      http.get(uri.request_uri)
     end
-  end
+    raise "Sympa WSDL unavailable at #{uri}: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess) && response.body.include?('definitions')
 
-  config.after(:suite) do
-    puts "\n" + "="*60
-    puts "Test suite completed"
-    puts "="*60
+    puts "Testing real Sympa at #{ENV.fetch('SYMPA_ENDPOINT', 'http://localhost:8080/sympasoap')}"
   end
 end
