@@ -1,10 +1,20 @@
-## Unreleased
-* Removed unused Docker Compose environments and consolidated testing and SOAP
-  integration documentation in README.md.
-* Removed the obsolete simulated SOAP server and its support scripts.
-* Added docker:build and docker:spec tasks for real Sympa SOAP integration tests.
-* Fixed Savon authentication wrappers, SOAPAction headers, encoded parameters,
-  native SOAP result decoding, and login session handling.
+## 1.3.0 - 19-Nov-2026
+* Replaced soap4r-ruby1.9 with Savon 2.x and Nokogiri for SOAP communication.
+* Structured SOAP values now return as hashes with symbol keys, such as
+  `:subject` and `:list_address`, instead of `SOAP::Mapping` objects.
+* Login now normalizes email addresses, validates session cookies, and clears
+  an existing session when reauthentication fails.
+* SOAP faults and transport failures now raise `Mail::Sympa::Error`, including
+  server fault details when available.
+* Fixed the `am_i?` error message to include the invalid function name.
+* Replaced the test-unit suite with RSpec and made `rake spec` the default task.
+  Removed the dbi-dbrc dependency and `.dbirc` test configuration.
+* Added `rake docker:build` and `rake docker:spec` for self-contained integration
+  tests against real Sympa, including authentication and changes to server state.
+* Updated gem build/install tasks, added RubyGems metadata, and standardized the
+  license identifier as `Artistic-2.0`.
+* Converted documentation to Markdown, consolidated usage and testing details
+  in README.md, and updated the manifest.
 
 ## 1.2.0 - 12-Mar-2016
 * No longer supports Ruby 1.8, and made corresponding changes to code.
