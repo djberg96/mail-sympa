@@ -1,8 +1,7 @@
 require 'rake'
 require 'rake/clean'
-require 'rake/testtask'
 
-CLEAN.include("**/*.gem", "**/*.rbc")
+CLEAN.include("**/*.gem", "**/*.rbc", "**/*.lock")
 
 def container_runtime
   return ENV['CONTAINER_RUNTIME'] unless ENV['CONTAINER_RUNTIME'].to_s.empty?
@@ -34,22 +33,18 @@ namespace 'gem' do
   end
 
   desc 'Build the mail-sympa gem'
-  task :build => [:clean] do
+  task :create => [:clean] do
     require 'rubygems/package'
     spec = Gem::Specification.load('mail-sympa.gemspec')
+    spec.signing_key = File.join(Dir.home, '.ssh', 'gem-private_key.pem')
     Gem::Package.build(spec)
   end
 
   desc 'Install the mail-sympa gem'
-  task :install => [:build] do
+  task :install => [:create] do
     file = Dir["*.gem"].first
     sh "gem install -l #{file}"
   end
-end
-
-Rake::TestTask.new('test') do |t|
-  t.warning = true
-  t.verbose = true
 end
 
 begin
