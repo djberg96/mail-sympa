@@ -2,14 +2,15 @@ require 'rubygems'
 
 Gem::Specification.new do |spec|
   spec.name        = 'mail-sympa'
-  spec.version     = '1.2.0'
+  spec.version     = '1.3.0'
   spec.authors     = ['Daniel J. Berger', 'David Salisbury', 'Mark Sallee']
   spec.license     = 'Artistic-2.0'
   spec.description = 'Ruby interface for the Sympa mailing list server'
   spec.email       = 'djberg96@gmail.com'
   spec.files       = Dir['**/*'].reject{ |f| f.include?('git') }
-  spec.test_files  = ['test/test_mail_sympa.rb', 'spec/mail_sympa_spec.rb']
+  spec.test_files  = Dir['spec/*_spec.rb']
   spec.homepage    = 'http://github.com/djberg96/mail-sympa'
+  spec.cert_chain  = ['certs/djberg96_pub.pem']
 
   # Using Savon for SOAP client functionality (modern, Ruby 3.3+ compatible)
   spec.add_dependency('savon', '~> 2.12')
