@@ -24,7 +24,7 @@ RSpec.describe Mail::Sympa do
 
   describe 'class constants and attributes' do
     it 'has the expected version constant' do
-      expect(Mail::Sympa::VERSION).to eq('1.2.0')
+      expect(Mail::Sympa::VERSION).to eq('1.3.0')
     end
   end
 
