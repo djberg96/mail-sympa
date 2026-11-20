@@ -1,3 +1,6 @@
+## 1.3.1 - 20-Nov-2026
+* Fix the version, oops.
+
 ## 1.3.0 - 19-Nov-2026
 * Replaced soap4r-ruby1.9 with Savon 2.x and Nokogiri for SOAP communication.
 * Structured SOAP values now return as hashes with symbol keys, such as
