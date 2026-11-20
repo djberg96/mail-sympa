@@ -6,6 +6,7 @@
 * MANIFEST.md
 * README.md
 * Rakefile
+* certs/djberg96_pub.pem
 * docker/Dockerfile
 * docker/run_specs.rb
 * docker/seed_sympa.pl
